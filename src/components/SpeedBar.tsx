@@ -7,7 +7,7 @@ import { Text } from "@visx/text";
 import { LinearGradient } from "@visx/gradient";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
-import { Model } from "@/data/models";
+import { Model, bestSpeed, getLab } from "@/data/models";
 
 interface SpeedBarProps {
   models: Model[];
@@ -20,14 +20,14 @@ interface ChartProps extends SpeedBarProps {
 
 function Chart({ models, width, height }: ChartProps) {
   const sorted = [...models].sort(
-    (a, b) => b.tokensPerSecond - a.tokensPerSecond
+    (a, b) => bestSpeed(b) - bestSpeed(a)
   );
 
   const margin = { top: 8, right: 48, bottom: 8, left: 160 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  const maxSpeed = Math.max(...sorted.map((m) => m.tokensPerSecond));
+  const maxSpeed = Math.max(...sorted.map((m) => bestSpeed(m)));
 
   const {
     tooltipData,
@@ -66,7 +66,8 @@ function Chart({ models, width, height }: ChartProps) {
         <Group left={margin.left} top={margin.top}>
           {sorted.map((model) => {
             const y = yScale(model.id) ?? 0;
-            const barWidth = xScale(model.tokensPerSecond);
+            const speed = bestSpeed(model);
+            const barWidth = xScale(speed);
             return (
               <Group key={model.id}>
                 <Text
@@ -113,7 +114,7 @@ function Chart({ models, width, height }: ChartProps) {
                   fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
                   fontWeight={600}
                 >
-                  {model.tokensPerSecond}
+                  {speed}
                 </Text>
               </Group>
             );
@@ -129,8 +130,10 @@ function Chart({ models, width, height }: ChartProps) {
           className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-3 py-2 rounded-lg text-sm shadow-lg pointer-events-none z-50"
         >
           <div className="font-semibold">{tooltipData.name}</div>
-          <div className="opacity-70">{tooltipData.provider}</div>
-          <div className="mt-1">{tooltipData.tokensPerSecond} tok/s</div>
+          <div className="opacity-70">
+            {getLab(tooltipData.labId)?.name}
+          </div>
+          <div className="mt-1">{bestSpeed(tooltipData)} tok/s</div>
         </TooltipWithBounds>
       )}
     </div>

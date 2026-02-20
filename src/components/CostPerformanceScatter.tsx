@@ -7,7 +7,7 @@ import { Text } from "@visx/text";
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
-import { Model } from "@/data/models";
+import { Model, bestCost, getLab } from "@/data/models";
 
 interface ScatterProps {
   models: Model[];
@@ -38,8 +38,9 @@ function Chart({ models, width, height }: ChartProps) {
     hideTooltip,
   } = useTooltip<Model>();
 
-  const maxCost = Math.max(...models.map((m) => m.blendedCost));
-  const minCost = Math.min(...models.map((m) => m.blendedCost));
+  const costs = models.map((m) => bestCost(m));
+  const maxCost = Math.max(...costs);
+  const minCost = Math.min(...costs);
 
   const xScale = scaleLog({
     domain: [Math.max(0.05, minCost * 0.7), maxCost * 1.3],
@@ -110,8 +111,9 @@ function Chart({ models, width, height }: ChartProps) {
             }}
           />
           {models.map((model) => {
-            const cx = xScale(model.blendedCost);
-            const cy = yScale(model.score);
+            const cost = bestCost(model);
+            const cx = xScale(cost);
+            const cy = yScale(model.scores.overall);
             const isHighlighted =
               !tooltipOpen || tooltipData?.id === model.id;
             return (
@@ -164,10 +166,12 @@ function Chart({ models, width, height }: ChartProps) {
           className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-3 py-2 rounded-lg text-sm shadow-lg pointer-events-none z-50"
         >
           <div className="font-semibold">{tooltipData.name}</div>
-          <div className="opacity-70">{tooltipData.provider}</div>
+          <div className="opacity-70">
+            {getLab(tooltipData.labId)?.name}
+          </div>
           <div className="mt-1">
-            Score: {tooltipData.score} · $
-            {tooltipData.blendedCost.toFixed(2)}/1M tokens
+            Score: {tooltipData.scores.overall} · $
+            {bestCost(tooltipData).toFixed(2)}/1M tokens
           </div>
         </TooltipWithBounds>
       )}

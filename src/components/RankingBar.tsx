@@ -7,7 +7,7 @@ import { Text } from "@visx/text";
 import { LinearGradient } from "@visx/gradient";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
-import { Model } from "@/data/models";
+import { Model, getLab } from "@/data/models";
 
 interface RankingBarProps {
   models: Model[];
@@ -19,7 +19,9 @@ interface ChartProps extends RankingBarProps {
 }
 
 function Chart({ models, width, height }: ChartProps) {
-  const sorted = [...models].sort((a, b) => b.score - a.score);
+  const sorted = [...models].sort(
+    (a, b) => b.scores.overall - a.scores.overall
+  );
 
   const margin = { top: 8, right: 48, bottom: 8, left: 160 };
   const innerWidth = width - margin.left - margin.right;
@@ -62,7 +64,8 @@ function Chart({ models, width, height }: ChartProps) {
         <Group left={margin.left} top={margin.top}>
           {sorted.map((model) => {
             const y = yScale(model.id) ?? 0;
-            const barWidth = xScale(model.score);
+            const barWidth = xScale(model.scores.overall);
+            const lab = getLab(model.labId);
             return (
               <Group key={model.id}>
                 <Text
@@ -107,7 +110,7 @@ function Chart({ models, width, height }: ChartProps) {
                   fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
                   fontWeight={600}
                 >
-                  {model.score}
+                  {model.scores.overall}
                 </Text>
               </Group>
             );
@@ -123,8 +126,10 @@ function Chart({ models, width, height }: ChartProps) {
           className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-3 py-2 rounded-lg text-sm shadow-lg pointer-events-none z-50"
         >
           <div className="font-semibold">{tooltipData.name}</div>
-          <div className="opacity-70">{tooltipData.provider}</div>
-          <div className="mt-1">Score: {tooltipData.score}</div>
+          <div className="opacity-70">
+            {getLab(tooltipData.labId)?.name}
+          </div>
+          <div className="mt-1">Score: {tooltipData.scores.overall}</div>
         </TooltipWithBounds>
       )}
     </div>

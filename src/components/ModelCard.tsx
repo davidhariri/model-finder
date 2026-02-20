@@ -1,4 +1,4 @@
-import { Model } from "@/data/models";
+import { Model, bestCost, bestSpeed, getLab } from "@/data/models";
 
 const categoryLabels: Record<Model["category"], string> = {
   frontier: "Frontier",
@@ -17,6 +17,10 @@ interface ModelCardProps {
 }
 
 export default function ModelCard({ model }: ModelCardProps) {
+  const lab = getLab(model.labId);
+  const cost = bestCost(model);
+  const speed = bestSpeed(model);
+
   return (
     <div className="group rounded-2xl border border-card-border bg-card-bg p-5 transition-all duration-200 hover:border-card-hover-border hover:shadow-lg">
       <div className="flex items-start justify-between gap-3">
@@ -25,7 +29,10 @@ export default function ModelCard({ model }: ModelCardProps) {
             {model.name}
           </h3>
           <p className="mt-0.5 text-[13px] text-foreground-secondary">
-            {model.provider}
+            {lab?.name}
+          </p>
+          <p className="text-[11px] text-foreground-tertiary">
+            {model.providers.length} provider{model.providers.length > 1 ? "s" : ""}
           </p>
         </div>
         <span
@@ -36,15 +43,15 @@ export default function ModelCard({ model }: ModelCardProps) {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3">
-        <Stat label="Score" value={model.score.toString()} />
+        <Stat label="Score" value={model.scores.overall.toString()} />
         <Stat
           label="Cost"
-          value={`$${model.blendedCost < 1 ? model.blendedCost.toFixed(2) : model.blendedCost.toFixed(0)}`}
+          value={`$${cost < 1 ? cost.toFixed(2) : cost.toFixed(0)}`}
           sub="/1M tok"
         />
         <Stat
           label="Speed"
-          value={model.tokensPerSecond.toString()}
+          value={speed.toString()}
           sub="tok/s"
         />
       </div>

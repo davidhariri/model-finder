@@ -5,7 +5,9 @@ import SpeedBar from "@/components/SpeedBar";
 import ModelCard from "@/components/ModelCard";
 
 export default function Home() {
-  const sortedByScore = [...models].sort((a, b) => b.score - a.score);
+  const sortedByScore = [...models].sort(
+    (a, b) => b.scores.overall - a.scores.overall
+  );
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16 md:py-24">

@@ -1,179 +1,272 @@
+// --- Types ---
+
+export interface Lab {
+  id: string;
+  name: string;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
+}
+
+export interface ModelProvider {
+  providerId: string;
+  costPer1MInput: number;
+  costPer1MOutput: number;
+  blendedCost: number; // weighted avg $/1M tokens (3:1 input:output)
+  tokensPerSecond: number;
+}
+
+export interface Scores {
+  overall: number;
+  coding: number;
+  reasoning: number;
+  math: number;
+  general: number;
+}
+
 export interface Model {
   id: string;
   name: string;
-  provider: string;
-  score: number; // composite intelligence index, 0-100
-  costPer1MInput: number; // $ per 1M input tokens
-  costPer1MOutput: number; // $ per 1M output tokens
-  blendedCost: number; // weighted avg $/1M tokens (3:1 input:output)
-  tokensPerSecond: number; // output tokens/sec
+  labId: string;
   category: "frontier" | "mid" | "efficient";
+  scores: Scores;
+  providers: ModelProvider[];
 }
+
+// --- Helpers ---
+
+/** Best (lowest) blended cost across providers */
+export function bestCost(model: Model): number {
+  return Math.min(...model.providers.map((p) => p.blendedCost));
+}
+
+/** Best (highest) speed across providers */
+export function bestSpeed(model: Model): number {
+  return Math.max(...model.providers.map((p) => p.tokensPerSecond));
+}
+
+/** Cost range [min, max] across providers */
+export function costRange(model: Model): [number, number] {
+  const costs = model.providers.map((p) => p.blendedCost);
+  return [Math.min(...costs), Math.max(...costs)];
+}
+
+/** Speed range [min, max] across providers */
+export function speedRange(model: Model): [number, number] {
+  const speeds = model.providers.map((p) => p.tokensPerSecond);
+  return [Math.min(...speeds), Math.max(...speeds)];
+}
+
+export function getProvider(id: string): Provider | undefined {
+  return providers.find((p) => p.id === id);
+}
+
+export function getLab(id: string): Lab | undefined {
+  return labs.find((l) => l.id === id);
+}
+
+// --- Reference data ---
+
+export const labs: Lab[] = [
+  { id: "anthropic", name: "Anthropic" },
+  { id: "openai", name: "OpenAI" },
+  { id: "google", name: "Google" },
+  { id: "meta", name: "Meta" },
+  { id: "deepseek", name: "DeepSeek" },
+  { id: "alibaba", name: "Alibaba" },
+  { id: "mistral", name: "Mistral" },
+  { id: "cohere", name: "Cohere" },
+  { id: "microsoft", name: "Microsoft" },
+];
+
+export const providers: Provider[] = [
+  { id: "anthropic", name: "Anthropic" },
+  { id: "openai", name: "OpenAI" },
+  { id: "google", name: "Google" },
+  { id: "together", name: "Together AI" },
+  { id: "fireworks", name: "Fireworks" },
+  { id: "bedrock", name: "AWS Bedrock" },
+  { id: "azure", name: "Azure" },
+  { id: "deepseek", name: "DeepSeek" },
+  { id: "mistral", name: "Mistral" },
+  { id: "cohere", name: "Cohere" },
+  { id: "vertex", name: "Google Vertex" },
+];
+
+// --- Models ---
 
 export const models: Model[] = [
   {
     id: "claude-opus-4",
     name: "Claude Opus 4",
-    provider: "Anthropic",
-    score: 93,
-    costPer1MInput: 15,
-    costPer1MOutput: 75,
-    blendedCost: 30,
-    tokensPerSecond: 40,
+    labId: "anthropic",
     category: "frontier",
+    scores: { overall: 93, coding: 95, reasoning: 94, math: 90, general: 92 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 40 },
+      { providerId: "bedrock", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 35 },
+      { providerId: "vertex", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 38 },
+    ],
   },
   {
     id: "gpt-4o",
     name: "GPT-4o",
-    provider: "OpenAI",
-    score: 90,
-    costPer1MInput: 2.5,
-    costPer1MOutput: 10,
-    blendedCost: 4.38,
-    tokensPerSecond: 85,
+    labId: "openai",
     category: "frontier",
+    scores: { overall: 90, coding: 89, reasoning: 91, math: 92, general: 90 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 85 },
+      { providerId: "azure", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 80 },
+    ],
   },
   {
     id: "gemini-2-pro",
     name: "Gemini 2.0 Pro",
-    provider: "Google",
-    score: 89,
-    costPer1MInput: 1.25,
-    costPer1MOutput: 5,
-    blendedCost: 2.19,
-    tokensPerSecond: 70,
+    labId: "google",
     category: "frontier",
+    scores: { overall: 89, coding: 87, reasoning: 90, math: 91, general: 88 },
+    providers: [
+      { providerId: "google", costPer1MInput: 1.25, costPer1MOutput: 5, blendedCost: 2.19, tokensPerSecond: 70 },
+      { providerId: "vertex", costPer1MInput: 1.25, costPer1MOutput: 5, blendedCost: 2.19, tokensPerSecond: 65 },
+    ],
   },
   {
     id: "claude-sonnet-4",
     name: "Claude Sonnet 4",
-    provider: "Anthropic",
-    score: 88,
-    costPer1MInput: 3,
-    costPer1MOutput: 15,
-    blendedCost: 6,
-    tokensPerSecond: 75,
+    labId: "anthropic",
     category: "frontier",
+    scores: { overall: 88, coding: 91, reasoning: 87, math: 85, general: 88 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 75 },
+      { providerId: "bedrock", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 68 },
+      { providerId: "vertex", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 70 },
+    ],
   },
   {
     id: "deepseek-v3",
     name: "DeepSeek V3",
-    provider: "DeepSeek",
-    score: 86,
-    costPer1MInput: 0.27,
-    costPer1MOutput: 1.1,
-    blendedCost: 0.48,
-    tokensPerSecond: 60,
+    labId: "deepseek",
     category: "mid",
+    scores: { overall: 86, coding: 88, reasoning: 85, math: 87, general: 83 },
+    providers: [
+      { providerId: "deepseek", costPer1MInput: 0.27, costPer1MOutput: 1.1, blendedCost: 0.48, tokensPerSecond: 60 },
+      { providerId: "together", costPer1MInput: 0.35, costPer1MOutput: 1.3, blendedCost: 0.59, tokensPerSecond: 70 },
+      { providerId: "fireworks", costPer1MInput: 0.3, costPer1MOutput: 1.2, blendedCost: 0.53, tokensPerSecond: 75 },
+    ],
   },
   {
     id: "llama-4-maverick",
     name: "Llama 4 Maverick",
-    provider: "Meta",
-    score: 85,
-    costPer1MInput: 0.2,
-    costPer1MOutput: 0.6,
-    blendedCost: 0.3,
-    tokensPerSecond: 95,
+    labId: "meta",
     category: "mid",
+    scores: { overall: 85, coding: 83, reasoning: 86, math: 84, general: 87 },
+    providers: [
+      { providerId: "together", costPer1MInput: 0.2, costPer1MOutput: 0.6, blendedCost: 0.3, tokensPerSecond: 95 },
+      { providerId: "fireworks", costPer1MInput: 0.22, costPer1MOutput: 0.65, blendedCost: 0.33, tokensPerSecond: 105 },
+      { providerId: "bedrock", costPer1MInput: 0.32, costPer1MOutput: 0.97, blendedCost: 0.48, tokensPerSecond: 80 },
+    ],
   },
   {
     id: "gpt-4o-mini",
     name: "GPT-4o Mini",
-    provider: "OpenAI",
-    score: 82,
-    costPer1MInput: 0.15,
-    costPer1MOutput: 0.6,
-    blendedCost: 0.26,
-    tokensPerSecond: 130,
+    labId: "openai",
     category: "efficient",
+    scores: { overall: 82, coding: 80, reasoning: 81, math: 83, general: 84 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 0.15, costPer1MOutput: 0.6, blendedCost: 0.26, tokensPerSecond: 130 },
+      { providerId: "azure", costPer1MInput: 0.15, costPer1MOutput: 0.6, blendedCost: 0.26, tokensPerSecond: 120 },
+    ],
   },
   {
     id: "gemini-2-flash",
     name: "Gemini 2.0 Flash",
-    provider: "Google",
-    score: 84,
-    costPer1MInput: 0.1,
-    costPer1MOutput: 0.4,
-    blendedCost: 0.18,
-    tokensPerSecond: 150,
+    labId: "google",
     category: "efficient",
+    scores: { overall: 84, coding: 82, reasoning: 83, math: 85, general: 86 },
+    providers: [
+      { providerId: "google", costPer1MInput: 0.1, costPer1MOutput: 0.4, blendedCost: 0.18, tokensPerSecond: 150 },
+      { providerId: "vertex", costPer1MInput: 0.1, costPer1MOutput: 0.4, blendedCost: 0.18, tokensPerSecond: 140 },
+    ],
   },
   {
     id: "claude-haiku-4",
     name: "Claude Haiku 4",
-    provider: "Anthropic",
-    score: 80,
-    costPer1MInput: 0.8,
-    costPer1MOutput: 4,
-    blendedCost: 1.6,
-    tokensPerSecond: 120,
+    labId: "anthropic",
     category: "efficient",
+    scores: { overall: 80, coding: 78, reasoning: 79, math: 77, general: 82 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 0.8, costPer1MOutput: 4, blendedCost: 1.6, tokensPerSecond: 120 },
+      { providerId: "bedrock", costPer1MInput: 0.8, costPer1MOutput: 4, blendedCost: 1.6, tokensPerSecond: 110 },
+    ],
   },
   {
     id: "qwen-3-72b",
     name: "Qwen 3 72B",
-    provider: "Alibaba",
-    score: 83,
-    costPer1MInput: 0.4,
-    costPer1MOutput: 1.2,
-    blendedCost: 0.6,
-    tokensPerSecond: 55,
+    labId: "alibaba",
     category: "mid",
+    scores: { overall: 83, coding: 85, reasoning: 82, math: 84, general: 80 },
+    providers: [
+      { providerId: "together", costPer1MInput: 0.4, costPer1MOutput: 1.2, blendedCost: 0.6, tokensPerSecond: 55 },
+      { providerId: "fireworks", costPer1MInput: 0.35, costPer1MOutput: 1.0, blendedCost: 0.51, tokensPerSecond: 65 },
+    ],
   },
   {
     id: "mistral-large",
     name: "Mistral Large 2",
-    provider: "Mistral",
-    score: 81,
-    costPer1MInput: 2,
-    costPer1MOutput: 6,
-    blendedCost: 3,
-    tokensPerSecond: 65,
+    labId: "mistral",
     category: "mid",
+    scores: { overall: 81, coding: 80, reasoning: 82, math: 79, general: 81 },
+    providers: [
+      { providerId: "mistral", costPer1MInput: 2, costPer1MOutput: 6, blendedCost: 3, tokensPerSecond: 65 },
+      { providerId: "bedrock", costPer1MInput: 2.2, costPer1MOutput: 6.6, blendedCost: 3.3, tokensPerSecond: 55 },
+      { providerId: "azure", costPer1MInput: 2, costPer1MOutput: 6, blendedCost: 3, tokensPerSecond: 60 },
+    ],
   },
   {
     id: "command-r-plus",
     name: "Command R+",
-    provider: "Cohere",
-    score: 78,
-    costPer1MInput: 2.5,
-    costPer1MOutput: 10,
-    blendedCost: 4.38,
-    tokensPerSecond: 50,
+    labId: "cohere",
     category: "mid",
+    scores: { overall: 78, coding: 75, reasoning: 79, math: 76, general: 80 },
+    providers: [
+      { providerId: "cohere", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 50 },
+      { providerId: "bedrock", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 45 },
+    ],
   },
   {
     id: "phi-4",
     name: "Phi-4",
-    provider: "Microsoft",
-    score: 76,
-    costPer1MInput: 0.07,
-    costPer1MOutput: 0.14,
-    blendedCost: 0.09,
-    tokensPerSecond: 180,
+    labId: "microsoft",
     category: "efficient",
+    scores: { overall: 76, coding: 79, reasoning: 74, math: 78, general: 72 },
+    providers: [
+      { providerId: "azure", costPer1MInput: 0.07, costPer1MOutput: 0.14, blendedCost: 0.09, tokensPerSecond: 180 },
+      { providerId: "together", costPer1MInput: 0.1, costPer1MOutput: 0.2, blendedCost: 0.13, tokensPerSecond: 200 },
+    ],
   },
   {
     id: "llama-4-scout",
     name: "Llama 4 Scout",
-    provider: "Meta",
-    score: 79,
-    costPer1MInput: 0.15,
-    costPer1MOutput: 0.4,
-    blendedCost: 0.21,
-    tokensPerSecond: 110,
+    labId: "meta",
     category: "efficient",
+    scores: { overall: 79, coding: 77, reasoning: 78, math: 80, general: 81 },
+    providers: [
+      { providerId: "together", costPer1MInput: 0.15, costPer1MOutput: 0.4, blendedCost: 0.21, tokensPerSecond: 110 },
+      { providerId: "fireworks", costPer1MInput: 0.18, costPer1MOutput: 0.45, blendedCost: 0.25, tokensPerSecond: 120 },
+      { providerId: "bedrock", costPer1MInput: 0.25, costPer1MOutput: 0.7, blendedCost: 0.36, tokensPerSecond: 90 },
+    ],
   },
   {
     id: "gemma-3-27b",
     name: "Gemma 3 27B",
-    provider: "Google",
-    score: 74,
-    costPer1MInput: 0.1,
-    costPer1MOutput: 0.2,
-    blendedCost: 0.13,
-    tokensPerSecond: 140,
+    labId: "google",
     category: "efficient",
+    scores: { overall: 74, coding: 72, reasoning: 73, math: 75, general: 76 },
+    providers: [
+      { providerId: "together", costPer1MInput: 0.1, costPer1MOutput: 0.2, blendedCost: 0.13, tokensPerSecond: 140 },
+      { providerId: "fireworks", costPer1MInput: 0.12, costPer1MOutput: 0.22, blendedCost: 0.15, tokensPerSecond: 155 },
+    ],
   },
 ];
