@@ -16,25 +16,38 @@ export default function Home() {
   const [requireVision, setRequireVision] = useState(false);
   const [requireOpenWeights, setRequireOpenWeights] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [closingModal, setClosingModal] = useState(false);
   const [sortCol, setSortCol] = useState<"model" | "creator" | "score" | "cost" | "speed" | "released" | null>("score");
   const [sortAsc, setSortAsc] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const aboutPanelRef = useRef<HTMLDivElement>(null);
+  const aboutButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!optionsOpen) return;
+    if (!optionsOpen && !aboutOpen) return;
     function handleClick(e: MouseEvent) {
-      if (
-        panelRef.current?.contains(e.target as Node) ||
-        buttonRef.current?.contains(e.target as Node)
-      ) return;
-      setOptionsOpen(false);
+      if (optionsOpen) {
+        if (
+          panelRef.current?.contains(e.target as Node) ||
+          buttonRef.current?.contains(e.target as Node)
+        ) return;
+        setOptionsOpen(false);
+      }
+      if (aboutOpen) {
+        if (
+          aboutPanelRef.current?.contains(e.target as Node) ||
+          aboutButtonRef.current?.contains(e.target as Node)
+        ) return;
+        setAboutOpen(false);
+      }
     }
     document.addEventListener("pointerdown", handleClick);
     return () => document.removeEventListener("pointerdown", handleClick);
-  }, [optionsOpen]);
+  }, [optionsOpen, aboutOpen]);
 
   const openModel = useCallback((model: Model) => {
     setSelectedModel(model);
@@ -114,6 +127,13 @@ export default function Home() {
       })
     : [...filtered].sort((a, b) => overallScore(b) - overallScore(a));
 
+  const searched = searchQuery
+    ? sorted.filter((m) => {
+        const q = searchQuery.toLowerCase();
+        return m.name.toLowerCase().includes(q) || (getLab(m.labId)?.name ?? "").toLowerCase().includes(q);
+      })
+    : sorted;
+
   return (
     <>
       {/* Backdrop */}
@@ -121,11 +141,11 @@ export default function Home() {
         className="fixed inset-0 z-40"
         style={{
           background: "color-mix(in srgb, var(--background) 60%, transparent)",
-          opacity: optionsOpen ? 1 : 0,
-          pointerEvents: optionsOpen ? "auto" : "none",
+          opacity: optionsOpen || aboutOpen ? 1 : 0,
+          pointerEvents: optionsOpen || aboutOpen ? "auto" : "none",
           transition: `opacity 0.3s ${EASING}`,
         }}
-        onClick={() => setOptionsOpen(false)}
+        onClick={() => { setOptionsOpen(false); setAboutOpen(false); }}
       />
 
       {/* Options panel */}
@@ -167,7 +187,7 @@ export default function Home() {
             >
               <button
                 onClick={() => { setMinScore(70); setMinSpeedVal(0); setRequireVision(false); setRequireOpenWeights(false); }}
-                className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-white transition-colors cursor-pointer h-[44px] px-6 rounded-full"
+                className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-[var(--card-bg)] transition-colors cursor-pointer h-[44px] px-6 rounded-full"
               >
                 Reset
               </button>
@@ -176,45 +196,133 @@ export default function Home() {
         </div>
       </div>
 
-    <main className="mx-auto max-w-5xl px-6 py-16 md:py-24">
+      {/* About panel */}
+      <div
+        ref={aboutPanelRef}
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{
+          pointerEvents: aboutOpen ? "auto" : "none",
+        }}
+        onClick={() => setAboutOpen(false)}
+      >
+        <div
+          className="rounded-3xl px-8 py-10 max-w-[420px] text-center"
+          style={{
+            background: "var(--card-bg)",
+            opacity: aboutOpen ? 1 : 0,
+            transform: aboutOpen ? "scale(1)" : "scale(0.9)",
+            pointerEvents: aboutOpen ? "auto" : "none",
+            transition: aboutOpen
+              ? "opacity 0.3s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
+              : `opacity 0.2s ease, transform 0.2s ${EASING}`,
+            boxShadow: "0 24px 80px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.04)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="space-y-4 text-sm text-foreground-secondary leading-relaxed">
+            <p>
+              <span className="font-semibold text-foreground mb-1 block">Methodology</span>
+              Intelligence scores are averaged from coding (<a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-Bench Verified</a>), reasoning (<a href="https://huggingface.co/datasets/Idavidrein/gpqa" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">GPQA Diamond</a>), math (<a href="https://artofproblemsolving.com/wiki/index.php/2025_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2025</a>), and general knowledge (<a href="https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMLU-Pro</a>) benchmarks. Speed and cost reflect best available provider pricing.
+            </p>
+            <p>
+              <span className="font-semibold text-foreground mb-1 block">Sources</span>
+              <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Artificial Analysis</a>, <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena</a>, and provider documentation.
+            </p>
+            <p>
+              <span className="font-semibold text-foreground mb-1 block">Built with</span>
+              <a href="https://nextjs.org" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Next.js</a>, <a href="https://airbnb.io/visx" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">visx</a>, <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Tailwind CSS</a>, and <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Vercel</a>.
+            </p>
+            <p>
+              <span className="font-semibold text-foreground mb-1 block">Created by</span>
+              <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline decoration-foreground/20"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>@davidhariri</a>
+            </p>
+            <div className="pt-2">
+              <a
+                href="https://github.com/davidhariri/model-finder/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-[var(--card-bg)] transition-colors cursor-pointer h-[44px] px-6 rounded-full inline-flex items-center"
+              >
+                Report an Issue
+              </a>
+            </div>
+            <p className="text-foreground-tertiary pt-1">
+              Last updated February 20, 2026
+            </p>
+          </div>
+        </div>
+      </div>
+
+    <main className="mx-auto max-w-5xl px-6 pt-8 pb-16 md:pt-12 md:pb-24">
       {/* Hero */}
       <header className="mb-20 text-center">
+        <div className="mb-6 flex items-center justify-center gap-1">
+          <button
+            ref={buttonRef}
+            onClick={() => { setOptionsOpen((o) => !o); setAboutOpen(false); }}
+            className={`text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
+              (() => {
+                const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+                return count > 0
+                  ? "text-accent"
+                  : optionsOpen
+                    ? "text-foreground"
+                    : "text-foreground-tertiary hover:text-foreground-secondary";
+              })()
+            }`}
+          >
+            {(() => {
+              const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+              return count > 0 ? `${count} Option${count > 1 ? "s" : ""} Applied` : "Options";
+            })()}
+          </button>
+          <button
+            ref={aboutButtonRef}
+            onClick={() => { setAboutOpen((o) => !o); setOptionsOpen(false); }}
+            className={`text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
+              aboutOpen
+                ? "text-foreground"
+                : "text-foreground-tertiary hover:text-foreground-secondary"
+            }`}
+          >
+            About
+          </button>
+        </div>
         <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
           Cloud Model Finder
         </h1>
-        <button
-          ref={buttonRef}
-          onClick={() => setOptionsOpen((o) => !o)}
-          className={`mt-4 text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
-            (() => {
-              const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
-              return count > 0
-                ? "text-accent"
-                : optionsOpen
-                  ? "text-foreground"
-                  : "text-foreground-tertiary hover:text-foreground-secondary";
-            })()
-          }`}
-        >
-          {(() => {
-            const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
-            return count > 0 ? `${count} Option${count > 1 ? "s" : ""} Applied` : "Options";
-          })()}
-        </button>
       </header>
 
       {/* Intelligence by Cost/Speed scatter */}
       <section className="mb-24">
-        <CostPerformanceScatter models={filtered} onModelClick={openModel} />
+        <CostPerformanceScatter models={filtered} onModelClick={openModel} onAboutClick={() => { setAboutOpen(true); setOptionsOpen(false); }} />
       </section>
 
       {/* Rankings — tabbed Intelligence / Speed / Cost */}
       <section className="mb-24">
-        <RankingTabs models={filtered} minScore={minScore} onModelClick={openModel} />
+        <RankingTabs models={filtered} minScore={minScore} onModelClick={openModel} onAboutClick={() => { setAboutOpen(true); setOptionsOpen(false); }} />
       </section>
 
       {/* All Models table */}
-      <Section title="All Models">
+      <section className="mb-24">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground text-center mb-4">
+          All Models
+        </h2>
+        <div className="flex justify-center mb-6">
+          <div className="relative">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-tertiary pointer-events-none" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.5 10.5L14 14" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search"
+              className="text-sm text-foreground bg-transparent border border-[var(--card-border)] rounded-full pl-9 pr-4 py-2 outline-none transition-all duration-300 w-48 focus:w-72 placeholder:text-foreground-tertiary focus:border-[var(--foreground-tertiary)]"
+            />
+          </div>
+        </div>
         <table className="w-full text-[13px]">
           <thead>
             <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
@@ -227,9 +335,9 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((model, i) => {
+            {searched.map((model, i) => {
               const lab = getLab(model.labId);
-              const isLast = i === sorted.length - 1;
+              const isLast = i === searched.length - 1;
               return (
                 <tr
                   key={model.id}
@@ -260,13 +368,8 @@ export default function Home() {
             })}
           </tbody>
         </table>
-      </Section>
+      </section>
 
-      <footer className="text-center text-sm text-foreground-tertiary pb-12">
-        Made by <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">David</a>
-        <br />
-        Last updated February 20, 2026
-      </footer>
     </main>
 
       {/* Model detail backdrop */}
@@ -343,9 +446,9 @@ function SortTh<T extends string>({ col, current, asc, onSort, align, children, 
 
 function FilterPill({ label, active, color, icon, onClick }: { label: string; active: boolean; color?: "green" | "magenta"; icon?: React.ReactNode; onClick: () => void }) {
   const activeClasses = color === "green"
-    ? "bg-sys-green text-white"
+    ? "bg-sys-green text-[var(--card-bg)]"
     : color === "magenta"
-      ? "bg-sys-pink text-white"
+      ? "bg-sys-pink text-[var(--card-bg)]"
       : "bg-foreground text-background";
   return (
     <button

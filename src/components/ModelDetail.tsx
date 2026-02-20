@@ -27,7 +27,7 @@ export default function ModelDetail({
   const [selectedTile, setSelectedTile] = useState<Tile>("intelligence");
   const [tileTransitioning, setTileTransitioning] = useState(false);
   const [tileSlideDir, setTileSlideDir] = useState<"left" | "right">("right");
-  const [infoTab, setInfoTab] = useState<"details" | "providers">("details");
+  const [infoTab, setInfoTab] = useState<"details" | "providers">("providers");
   const [infoTransitioning, setInfoTransitioning] = useState(false);
   const [infoSlideDir, setInfoSlideDir] = useState<"left" | "right">("right");
   const [provSortCol, setProvSortCol] = useState<"provider" | "input" | "output" | "blended" | "speed" | null>("blended");
@@ -55,7 +55,7 @@ export default function ModelDetail({
   const switchInfoTab = useCallback(
     (next: "details" | "providers") => {
       if (next === infoTab) return;
-      const dir = next === "providers" ? "right" : "left";
+      const dir = next === "details" ? "right" : "left";
       setInfoSlideDir(dir);
       setInfoTransitioning(true);
       setTimeout(() => {
@@ -310,20 +310,20 @@ export default function ModelDetail({
           {/* Details / Providers tabs */}
           <div className="flex gap-4 mt-8 mb-4">
             <button
-              onClick={() => switchInfoTab("details")}
-              className={`text-lg font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
-                infoTab === "details" ? "text-foreground" : "text-foreground-tertiary hover:text-foreground-secondary"
-              }`}
-            >
-              Details
-            </button>
-            <button
               onClick={() => switchInfoTab("providers")}
               className={`text-lg font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
                 infoTab === "providers" ? "text-foreground" : "text-foreground-tertiary hover:text-foreground-secondary"
               }`}
             >
               Providers
+            </button>
+            <button
+              onClick={() => switchInfoTab("details")}
+              className={`text-lg font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
+                infoTab === "details" ? "text-foreground" : "text-foreground-tertiary hover:text-foreground-secondary"
+              }`}
+            >
+              Details
             </button>
           </div>
           <div
@@ -424,6 +424,17 @@ export default function ModelDetail({
               </table>
             )}
           </div>
+          <div className="mt-8 text-center">
+            <a
+              href="https://github.com/davidhariri/model-finder/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-sys-red hover:text-sys-red/70 active:text-sys-red/50 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Report an Issue
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -452,11 +463,11 @@ function SpecTile({ label, value, desc, selected, onClick }: {
       className="cursor-pointer transition-opacity duration-200"
       style={{ opacity: selected ? 1 : 0.4 }}
     >
-      <p className="text-[12px] text-foreground-tertiary">{label}</p>
+      <p className="text-[13px] font-medium text-foreground-secondary">{label}</p>
       <p className="text-2xl font-semibold tracking-tight text-foreground leading-tight mt-0.5">
         {value}
       </p>
-      <p className="text-[12px] text-foreground-tertiary mt-0.5">{desc}</p>
+      <p className="text-[13px] font-medium text-foreground-secondary mt-0.5">{desc}</p>
     </div>
   );
 }

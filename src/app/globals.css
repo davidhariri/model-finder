@@ -57,7 +57,7 @@
     --cost-bar-output-start: #BF5AF2;
     --cost-bar-output-end: #BF5AF2;
     --system-green: #30D158;
-    --system-red: #FF453A;
+    --system-red: #FF6961;
     --system-pink: #FF375F;
   }
 }
@@ -85,6 +85,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+svg text {
+  font-family: inherit;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

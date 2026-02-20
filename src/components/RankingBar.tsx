@@ -75,7 +75,6 @@ function Chart({ models, width, height }: ChartProps) {
                   verticalAnchor="middle"
                   fill="var(--foreground-secondary)"
                   fontSize={13}
-                  fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
                   fontWeight={500}
                 >
                   {model.name}
@@ -107,7 +106,6 @@ function Chart({ models, width, height }: ChartProps) {
                   verticalAnchor="middle"
                   fill="var(--foreground)"
                   fontSize={13}
-                  fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
                   fontWeight={600}
                 >
                   {overallScore(model)}

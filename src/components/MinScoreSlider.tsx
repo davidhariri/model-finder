@@ -120,7 +120,7 @@ export default function MinScoreSlider({
               width: THUMB_SIZE,
               height: THUMB_SIZE,
               borderRadius: THUMB_SIZE / 2,
-              background: "var(--surface-elevated)",
+              background: "var(--card-bg)",
               transform: held ? "scale(1.15)" : "scale(1)",
               transition: `transform 0.4s ${SPRING}, background 0.15s ease`,
             }}

@@ -8,7 +8,7 @@ import { Text } from "@visx/text";
 import { LinearGradient } from "@visx/gradient";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
-import { Model, bestSpeed, bestCost, getLab, getProvider, overallScore } from "@/data/models";
+import { Model, bestSpeed, bestCost, getLab, overallScore } from "@/data/models";
 import BrandIcon from "@/components/BrandIcon";
 
 type Tab = "intelligence" | "speed" | "cost";
@@ -19,6 +19,7 @@ interface RankingTabsProps {
   models: Model[];
   minScore: number;
   onModelClick?: (model: Model) => void;
+  onAboutClick?: () => void;
 }
 
 interface ChartProps {
@@ -28,6 +29,7 @@ interface ChartProps {
   height: number;
   animKey: number;
   onModelClick?: (model: Model) => void;
+  onAboutClick?: () => void;
 }
 
 function getValue(model: Model, tab: Tab): number {
@@ -36,7 +38,7 @@ function getValue(model: Model, tab: Tab): number {
   return bestCost(model);
 }
 
-function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps) {
+function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick }: ChartProps) {
   const sorted =
     tab === "cost"
       ? [...models].sort((a, b) => bestCost(a) - bestCost(b)) // cheapest first
@@ -45,7 +47,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
   const topN = sorted.slice(0, MODEL_COUNT);
 
   const axisLabels: Record<Tab, string> = {
-    intelligence: "Average score",
+    intelligence: "Average of Benchmark Scores",
     speed: "Best provider tokens per second",
     cost: "Blended cost per 1M tokens (USD)",
   };
@@ -174,7 +176,6 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
                       fontSize: 13,
                       fontWeight: 500,
                       color: "var(--foreground-secondary)",
-                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
                       whiteSpace: "nowrap",
                     }}>
                       {model.name}
@@ -200,7 +201,6 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
                   verticalAnchor="middle"
                   fill="var(--foreground)"
                   fontSize={13}
-                  fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
                   fontWeight={600}
                   style={{
                     transition: progress === 1 ? "x 0.6s cubic-bezier(0.22, 1, 0.36, 1)" : "none",
@@ -213,17 +213,35 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
               </Group>
             );
           })}
-          <Text
-            x={width / 2 - margin.left}
-            y={innerHeight + 16}
-            textAnchor="middle"
-            fill="var(--foreground-secondary)"
-            fontSize={12}
-            fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
-            fontWeight={500}
-          >
-            {axisLabels[tab]}
-          </Text>
+          {tab === "intelligence" ? (
+            <text
+              x={width / 2 - margin.left}
+              y={innerHeight + 16}
+              textAnchor="middle"
+              fill="var(--foreground-secondary)"
+              fontSize={12}
+              fontWeight={500}
+            >
+              <tspan>Average of </tspan>
+              <tspan
+                style={{ cursor: "pointer", textDecoration: "underline", textDecorationColor: "color-mix(in srgb, var(--foreground-secondary) 25%, transparent)" }}
+                onClick={onAboutClick}
+              >
+                Benchmark Scores
+              </tspan>
+            </text>
+          ) : (
+            <Text
+              x={width / 2 - margin.left}
+              y={innerHeight + 16}
+              textAnchor="middle"
+              fill="var(--foreground-secondary)"
+              fontSize={12}
+              fontWeight={500}
+            >
+              {axisLabels[tab]}
+            </Text>
+          )}
         </Group>
       </svg>
       {tooltipOpen && tooltipData && (
@@ -232,102 +250,36 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
           top={tooltipTop}
           unstyled
           applyPositionStyle
-          className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-3 py-2.5 rounded-2xl text-sm shadow-lg pointer-events-none z-50 min-w-[220px]"
+          className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-4 py-3.5 rounded-2xl text-sm shadow-lg pointer-events-none z-50 min-w-[200px]"
         >
           <div className="font-semibold">{tooltipData.name}</div>
-          <div className="opacity-70 text-xs">
+          <div className="flex items-center gap-1.5 opacity-70 text-xs mt-0.5">
+            <BrandIcon id={tooltipData.labId} size={12} />
             {getLab(tooltipData.labId)?.name}
           </div>
-          {/* Summary stats — always show all three dimensions */}
-          <div className="mt-1.5 flex gap-3 text-[11px] opacity-70">
-            <span>Score: {overallScore(tooltipData)}</span>
-            <span>{bestSpeed(tooltipData)} tok/s</span>
-            <span>${bestCost(tooltipData).toFixed(2)}/1M</span>
-          </div>
-          {/* Tab-specific detail */}
-          {tab === "intelligence" && (
-            <div className="mt-2 pt-2 border-t border-[var(--foreground)]/10 space-y-1.5">
-              {(
-                [
-                  ["Coding", tooltipData.scores.coding],
-                  ["Reasoning", tooltipData.scores.reasoning],
-                  ["Math", tooltipData.scores.math],
-                  ["General", tooltipData.scores.general],
-                ] as const
-              ).map(([label, score]) => (
-                <div key={label} className="flex items-center gap-2">
-                  <span className="text-[11px] w-16 text-right opacity-60 shrink-0">
-                    {label}
-                  </span>
-                  <div className="flex-1 h-1.5 rounded-full bg-[var(--foreground)]/10 overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${score}%`,
-                        background: "linear-gradient(to right, var(--bar-fill-start), var(--bar-fill-end))",
-                      }}
-                    />
-                  </div>
-                  <span className="text-[11px] w-6 tabular-nums font-medium">
-                    {score}
-                  </span>
-                </div>
-              ))}
+          <div className="mt-3 space-y-1.5 text-[13px]">
+            <div className="flex justify-between gap-6">
+              <span className="opacity-60">Intelligence</span>
+              <span className="font-medium tabular-nums">{overallScore(tooltipData)}</span>
             </div>
-          )}
-          {tab === "cost" && (() => {
-            const maxOutput = Math.max(...tooltipData.providers.map((p) => p.costPer1MOutput));
-            return (
-              <div className="mt-2 pt-2 border-t border-[var(--foreground)]/10 space-y-2">
-                {[...tooltipData.providers]
-                  .sort((a, b) => a.blendedCost - b.blendedCost)
-                  .map((p) => (
-                    <div key={p.providerId}>
-                      <div className="text-[11px] opacity-60 mb-1">
-                        {getProvider(p.providerId)?.name}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] w-8 text-right opacity-50 shrink-0">In</span>
-                        <div className="flex-1 h-1.5 rounded-full bg-[var(--foreground)]/10 overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${(p.costPer1MInput / maxOutput) * 100}%`,
-                              background: "linear-gradient(to right, var(--cost-bar-start), var(--cost-bar-end))",
-                            }}
-                          />
-                        </div>
-                        <span className="text-[11px] w-10 tabular-nums font-medium text-right">
-                          ${p.costPer1MInput.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] w-8 text-right opacity-50 shrink-0">Out</span>
-                        <div className="flex-1 h-1.5 rounded-full bg-[var(--foreground)]/10 overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${(p.costPer1MOutput / maxOutput) * 100}%`,
-                              background: "linear-gradient(to right, var(--cost-bar-output-start), var(--cost-bar-output-end))",
-                            }}
-                          />
-                        </div>
-                        <span className="text-[11px] w-10 tabular-nums font-medium text-right">
-                          ${p.costPer1MOutput.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            );
-          })()}
+            <div className="border-t border-[var(--foreground)]/10" />
+            <div className="flex justify-between gap-6">
+              <span className="opacity-60">Best Speed</span>
+              <span className="font-medium tabular-nums">{bestSpeed(tooltipData)} <span className="opacity-50 font-normal">tok/s</span></span>
+            </div>
+            <div className="border-t border-[var(--foreground)]/10" />
+            <div className="flex justify-between gap-6">
+              <span className="opacity-60">Lowest Blended Cost</span>
+              <span className="font-medium tabular-nums">${bestCost(tooltipData).toFixed(2)} <span className="opacity-50 font-normal">/1M</span></span>
+            </div>
+          </div>
         </TooltipWithBounds>
       )}
     </div>
   );
 }
 
-export default function RankingTabs({ models, minScore, onModelClick }: RankingTabsProps) {
+export default function RankingTabs({ models, minScore, onModelClick, onAboutClick }: RankingTabsProps) {
   const [tab, setTab] = useState<Tab>("intelligence");
   const [animKey, setAnimKey] = useState(0);
   const [slideDir, setSlideDir] = useState<"left" | "right">("right");
@@ -416,6 +368,7 @@ export default function RankingTabs({ models, minScore, onModelClick }: RankingT
                 height={chartHeight}
                 animKey={animKey}
                 onModelClick={onModelClick}
+                onAboutClick={onAboutClick}
               />
             ) : null
           }

@@ -14,11 +14,15 @@ import {
   getLab,
   getProvider,
   overallScore,
+  bestSpeed,
+  bestCost,
 } from "@/data/models";
+import BrandIcon from "@/components/BrandIcon";
 
 interface ScatterProps {
   models: Model[];
   onModelClick?: (model: Model) => void;
+  onAboutClick?: () => void;
 }
 
 interface ChartProps extends ScatterProps {
@@ -29,14 +33,12 @@ interface ChartProps extends ScatterProps {
 
 type ScatterMode = "cost" | "speed";
 
-const DOT_COLOR = "var(--accent)";
-
 const SAUSAGE_HEIGHT = 12;
 const MIN_SAUSAGE_WIDTH = 12;
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 const DURATION = "0.6s";
 
-function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
+function Chart({ models, width, height, mode, onModelClick, onAboutClick }: ChartProps) {
   const margin = { top: 24, right: 32, bottom: 72, left: 64 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -78,7 +80,6 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
   const axisLabelProps = {
     fill: "var(--foreground-secondary)",
     fontSize: 12,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
     textAnchor: "middle" as const,
     fontWeight: 500,
   };
@@ -86,14 +87,41 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
   const tickLabelFn = () => ({
     fill: "var(--foreground-tertiary)",
     fontSize: 11,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
     textAnchor: "middle" as const,
     dy: 4,
   });
 
+  // Compute y-offsets for models sharing the same intelligence score
+  const nudgeMap = new Map<string, number>();
+  {
+    const scoreGroups = new Map<number, string[]>();
+    for (const m of models) {
+      const s = overallScore(m);
+      const group = scoreGroups.get(s) ?? [];
+      group.push(m.id);
+      scoreGroups.set(s, group);
+    }
+    for (const [, ids] of scoreGroups) {
+      if (ids.length <= 1) continue;
+      ids.forEach((id, i) => {
+        nudgeMap.set(id, (i - (ids.length - 1) / 2) * (SAUSAGE_HEIGHT + 2));
+      });
+    }
+  }
+
   return (
     <div className="relative">
       <svg width={width} height={height}>
+        <defs>
+          <linearGradient id="scatter-cost-grad" gradientUnits="userSpaceOnUse" x1={margin.left} x2={margin.left + innerWidth} y1="0" y2="0">
+            <stop offset="0%" stopColor="var(--bar-fill-end)" />
+            <stop offset="100%" stopColor="var(--cost-bar-end)" />
+          </linearGradient>
+          <linearGradient id="scatter-speed-grad" gradientUnits="userSpaceOnUse" x1={margin.left} x2={margin.left + innerWidth} y1="0" y2="0">
+            <stop offset="0%" stopColor="var(--bar-fill-end)" />
+            <stop offset="100%" stopColor="var(--speed-bar-end)" />
+          </linearGradient>
+        </defs>
         <Group left={margin.left} top={margin.top}>
           {/* Cost axis — fades in/out */}
           <g style={{ opacity: isCost ? 1 : 0, transition: "opacity 0.4s ease", pointerEvents: isCost ? "auto" : "none" }}>
@@ -136,19 +164,31 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
             tickLabelProps={() => ({
               fill: "var(--foreground-tertiary)",
               fontSize: 11,
-              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
               textAnchor: "end" as const,
               dx: -4,
               dy: 3,
             })}
-            label="Intelligence Score"
-            labelOffset={40}
-            labelProps={axisLabelProps}
           />
+          {/* Y-axis label with clickable "Benchmark Scores" */}
+          <text
+            transform={`translate(${-52}, ${innerHeight / 2}) rotate(-90)`}
+            textAnchor="middle"
+            fill="var(--foreground-secondary)"
+            fontSize={12}
+            fontWeight={500}
+          >
+            <tspan>Average of </tspan>
+            <tspan
+              style={{ cursor: "pointer", textDecoration: "underline", textDecorationColor: "color-mix(in srgb, var(--foreground-secondary) 25%, transparent)" }}
+              onClick={onAboutClick}
+            >
+              Benchmark Scores
+            </tspan>
+          </text>
           {models.map((model) => {
             const [minCost, maxCost] = costRange(model);
             const [minSpeed, maxSpeed] = speedRange(model);
-            const cy = yScale(overallScore(model));
+            const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
 
             // Compute sausage position based on mode
             const x1 = isCost ? costXScale(minCost) : speedXScale(minSpeed);
@@ -171,7 +211,7 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
                 <rect
                   height={SAUSAGE_HEIGHT}
                   rx={SAUSAGE_HEIGHT / 2}
-                  fill={DOT_COLOR}
+                  fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
                   onMouseMove={(e) => {
                     const svgRect = e.currentTarget
                       .closest("svg")
@@ -207,7 +247,6 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
                       textAnchor="middle"
                       fill="var(--background)"
                       fontSize={10}
-                      fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
                       fontWeight={500}
                       opacity={tooltipOpen ? 1 : 0.85}
                       stroke="var(--background)"
@@ -223,7 +262,6 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
                       textAnchor="middle"
                       fill="var(--foreground-secondary)"
                       fontSize={10}
-                      fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
                       fontWeight={500}
                       opacity={tooltipOpen ? 1 : 0.7}
                       style={{ transition: "opacity 0.2s ease" }}
@@ -243,44 +281,28 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
           top={tooltipTop}
           unstyled
           applyPositionStyle
-          className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-3 py-2.5 rounded-2xl text-sm shadow-lg pointer-events-none z-50 min-w-[200px]"
+          className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-4 py-3.5 rounded-2xl text-sm shadow-lg pointer-events-none z-50 min-w-[200px]"
         >
           <div className="font-semibold">{tooltipData.name}</div>
-          <div className="opacity-70 text-xs">
-            {getLab(tooltipData.labId)?.name} · Score: {overallScore(tooltipData)}
+          <div className="flex items-center gap-1.5 opacity-70 text-xs mt-0.5">
+            <BrandIcon id={tooltipData.labId} size={12} />
+            {getLab(tooltipData.labId)?.name}
           </div>
-          <div className="mt-2 space-y-1">
-            {isCost
-              ? [...tooltipData.providers]
-                  .sort((a, b) => a.blendedCost - b.blendedCost)
-                  .map((p) => (
-                    <div
-                      key={p.providerId}
-                      className="flex justify-between gap-4 text-xs"
-                    >
-                      <span className="opacity-80">
-                        {getProvider(p.providerId)?.name}
-                      </span>
-                      <span className="font-medium tabular-nums">
-                        ${p.blendedCost.toFixed(2)}
-                      </span>
-                    </div>
-                  ))
-              : [...tooltipData.providers]
-                  .sort((a, b) => b.tokensPerSecond - a.tokensPerSecond)
-                  .map((p) => (
-                    <div
-                      key={p.providerId}
-                      className="flex justify-between gap-4 text-xs"
-                    >
-                      <span className="opacity-80">
-                        {getProvider(p.providerId)?.name}
-                      </span>
-                      <span className="font-medium tabular-nums">
-                        {p.tokensPerSecond} tok/s
-                      </span>
-                    </div>
-                  ))}
+          <div className="mt-3 space-y-1.5 text-[13px]">
+            <div className="flex justify-between gap-6">
+              <span className="opacity-60">Intelligence</span>
+              <span className="font-medium tabular-nums">{overallScore(tooltipData)}</span>
+            </div>
+            <div className="border-t border-[var(--foreground)]/10" />
+            <div className="flex justify-between gap-6">
+              <span className="opacity-60">Best Speed</span>
+              <span className="font-medium tabular-nums">{bestSpeed(tooltipData)} <span className="opacity-50 font-normal">tok/s</span></span>
+            </div>
+            <div className="border-t border-[var(--foreground)]/10" />
+            <div className="flex justify-between gap-6">
+              <span className="opacity-60">Lowest Blended Cost</span>
+              <span className="font-medium tabular-nums">${bestCost(tooltipData).toFixed(2)} <span className="opacity-50 font-normal">/1M</span></span>
+            </div>
           </div>
         </TooltipWithBounds>
       )}
@@ -292,7 +314,7 @@ const MODES: ScatterMode[] = ["cost", "speed"];
 const MODE_LABELS: Record<ScatterMode, string> = { cost: "Cost", speed: "Speed" };
 const ITEM_HEIGHT = 36; // px — matches text-2xl line height
 
-export default function CostPerformanceScatter({ models, onModelClick }: ScatterProps) {
+export default function CostPerformanceScatter({ models, onModelClick, onAboutClick }: ScatterProps) {
   const [mode, setMode] = useState<ScatterMode>("cost");
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [skipTransition, setSkipTransition] = useState(false);
@@ -357,7 +379,7 @@ export default function CostPerformanceScatter({ models, onModelClick }: Scatter
       <ParentSize>
         {({ width }) =>
           width > 0 ? (
-            <Chart models={models} width={width} height={420} mode={mode} onModelClick={onModelClick} />
+            <Chart models={models} width={width} height={420} mode={mode} onModelClick={onModelClick} onAboutClick={onAboutClick} />
           ) : null
         }
       </ParentSize>
