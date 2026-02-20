@@ -16,15 +16,25 @@ export interface ModelProvider {
   providerId: string;
   costPer1MInput: number;
   costPer1MOutput: number;
-  blendedCost: number; // weighted avg $/1M tokens (3:1 input:output)
+  costPer1MCachedInput?: number;
   tokensPerSecond: number;
 }
 
+/** Weighted avg $/1M tokens (3:1 input:output) */
+export function blendedCost(p: ModelProvider): number {
+  return (p.costPer1MInput * 3 + p.costPer1MOutput) / 4;
+}
+
 export interface Scores {
-  coding: number;
-  reasoning: number;
-  math: number;
-  general: number;
+  coding?: number; // SWE-Bench Verified (%)
+  codingLive?: number; // LiveCodeBench (%)
+  reasoning: number; // GPQA Diamond (%)
+  reasoningHle?: number; // Humanity's Last Exam (%)
+  math?: number; // AIME 2025 or 2026 (%)
+  mathBenchmark?: "AIME 2025" | "AIME 2026";
+  general: number; // MMLU-Pro (%)
+  multimodal?: number; // MMMU-Pro (%)
+  elo?: number; // LMArena Elo rating
 }
 
 export interface Model {
@@ -36,6 +46,7 @@ export interface Model {
   knowledgeCutoff: string;
   parameters?: { total: number; active?: number }; // billions
   supportsImages: boolean;
+  thinking?: { type: "always" | "controllable"; budgetRange?: string };
   openWeights: boolean;
   releaseDate: string; // ISO date string YYYY-MM-DD
   releaseUrl?: string;
@@ -45,15 +56,49 @@ export interface Model {
 
 // --- Helpers ---
 
-/** Average score across all task benchmarks */
+/**
+ * Composite intelligence score (0-100) using anchored min-max normalization.
+ * Each benchmark is normalized to 0-1 using fixed floor/ceiling "goalposts",
+ * then averaged equally. Multimodal and Elo are excluded (shown separately).
+ */
+const GOALPOSTS: Record<string, { floor: number; ceiling: number }> = {
+  coding:       { floor: 0,  ceiling: 80 },  // SWE-Bench Verified
+  codingLive:   { floor: 0,  ceiling: 80 },  // LiveCodeBench (fallback for coding)
+  reasoning:    { floor: 25, ceiling: 100 },  // GPQA Diamond (4-choice → 25% random)
+  reasoningHle: { floor: 0,  ceiling: 100 },  // Humanity's Last Exam
+  math:         { floor: 0,  ceiling: 100 },  // AIME 2025/2026
+  general:      { floor: 10, ceiling: 100 },  // MMLU-Pro (10-choice → 10% random)
+};
+
+function normalize(raw: number, key: string): number {
+  const gp = GOALPOSTS[key];
+  return Math.max(0, Math.min(1, (raw - gp.floor) / (gp.ceiling - gp.floor)));
+}
+
 export function overallScore(model: Model): number {
-  const { coding, reasoning, math, general } = model.scores;
-  return Math.round((coding + reasoning + math + general) / 4);
+  const s = model.scores;
+  const parts = [
+    normalize(s.reasoning, "reasoning"),
+    normalize(s.general, "general"),
+  ];
+  // Coding: prefer SWE-Bench, fall back to LiveCodeBench
+  if (s.coding != null) {
+    parts.push(normalize(s.coding, "coding"));
+  } else if (s.codingLive != null) {
+    parts.push(normalize(s.codingLive, "codingLive"));
+  }
+  if (s.math != null) {
+    parts.push(normalize(s.math, "math"));
+  }
+  if (s.reasoningHle != null) {
+    parts.push(normalize(s.reasoningHle, "reasoningHle"));
+  }
+  return Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100);
 }
 
 /** Best (lowest) blended cost across providers */
 export function bestCost(model: Model): number {
-  return Math.min(...model.providers.map((p) => p.blendedCost));
+  return Math.min(...model.providers.map((p) => blendedCost(p)));
 }
 
 /** Best (highest) speed across providers */
@@ -63,7 +108,7 @@ export function bestSpeed(model: Model): number {
 
 /** Cost range [min, max] across providers */
 export function costRange(model: Model): [number, number] {
-  const costs = model.providers.map((p) => p.blendedCost);
+  const costs = model.providers.map((p) => blendedCost(p));
   return [Math.min(...costs), Math.max(...costs)];
 }
 
@@ -126,261 +171,219 @@ export const providers: Provider[] = [
 
 export const models: Model[] = [
   {
-    id: "claude-opus-4",
-    name: "Claude Opus 4",
-    labId: "anthropic",
-    contextWindow: 200_000,
-    maxOutputTokens: 32_000,
-    knowledgeCutoff: "Early 2025",
-    supportsImages: true,
-    openWeights: false,
-    releaseDate: "2025-05-22",
-    releaseUrl: "https://www.anthropic.com/news/claude-4",
-    scores: { coding: 95, reasoning: 94, math: 90, general: 92 },
-    providers: [
-      { providerId: "anthropic", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 40 },
-      { providerId: "bedrock", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 35 },
-      { providerId: "vertex", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 38 },
-    ],
-  },
-  {
     id: "gpt-4o",
     name: "GPT-4o",
     labId: "openai",
     contextWindow: 128_000,
     maxOutputTokens: 16_384,
-    knowledgeCutoff: "October 2023",
+    knowledgeCutoff: "2023-10",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2024-05-13",
     releaseUrl: "https://openai.com/index/hello-gpt-4o/",
-    scores: { coding: 89, reasoning: 91, math: 92, general: 90 },
+    scores: { coding: 33, reasoning: 51, reasoningHle: 3, math: 6, mathBenchmark: "AIME 2025", general: 73, multimodal: 54, elo: 1346 },
     providers: [
-      { providerId: "openai", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 85 },
-      { providerId: "azure", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 80 },
-    ],
-  },
-  {
-    id: "gemini-2-pro",
-    name: "Gemini 2.0 Pro",
-    labId: "google",
-    contextWindow: 2_000_000,
-    maxOutputTokens: 8_192,
-    knowledgeCutoff: "Early 2025",
-    supportsImages: true,
-    openWeights: false,
-    releaseDate: "2025-03-25",
-    releaseUrl: "https://blog.google/technology/google-deepmind/gemini-2-0-pro-available/",
-    scores: { coding: 87, reasoning: 90, math: 91, general: 88 },
-    providers: [
-      { providerId: "google", costPer1MInput: 1.25, costPer1MOutput: 5, blendedCost: 2.19, tokensPerSecond: 70 },
-      { providerId: "vertex", costPer1MInput: 1.25, costPer1MOutput: 5, blendedCost: 2.19, tokensPerSecond: 65 },
-    ],
-  },
-  {
-    id: "claude-sonnet-4",
-    name: "Claude Sonnet 4",
-    labId: "anthropic",
-    contextWindow: 200_000,
-    maxOutputTokens: 16_000,
-    knowledgeCutoff: "Early 2025",
-    supportsImages: true,
-    openWeights: false,
-    releaseDate: "2025-05-22",
-    releaseUrl: "https://www.anthropic.com/news/claude-4",
-    scores: { coding: 91, reasoning: 87, math: 85, general: 88 },
-    providers: [
-      { providerId: "anthropic", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 75 },
-      { providerId: "bedrock", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 68 },
-      { providerId: "vertex", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 70 },
-    ],
-  },
-  {
-    id: "deepseek-v3",
-    name: "DeepSeek V3",
-    labId: "deepseek",
-    contextWindow: 128_000,
-    maxOutputTokens: 8_192,
-    knowledgeCutoff: "2024",
-    parameters: { total: 671, active: 37 },
-    supportsImages: false,
-    openWeights: true,
-    releaseDate: "2024-12-26",
-    scores: { coding: 88, reasoning: 85, math: 87, general: 83 },
-    providers: [
-      { providerId: "deepseek", costPer1MInput: 0.27, costPer1MOutput: 1.1, blendedCost: 0.48, tokensPerSecond: 60 },
-      { providerId: "together", costPer1MInput: 0.35, costPer1MOutput: 1.3, blendedCost: 0.59, tokensPerSecond: 70 },
-      { providerId: "fireworks", costPer1MInput: 0.3, costPer1MOutput: 1.2, blendedCost: 0.53, tokensPerSecond: 75 },
-    ],
-  },
-  {
-    id: "llama-4-maverick",
-    name: "Llama 4 Maverick",
-    labId: "meta",
-    contextWindow: 1_000_000,
-    maxOutputTokens: 16_384,
-    knowledgeCutoff: "Early 2025",
-    parameters: { total: 400, active: 17 },
-    supportsImages: true,
-    openWeights: true,
-    releaseDate: "2025-04-05",
-    scores: { coding: 83, reasoning: 86, math: 84, general: 87 },
-    providers: [
-      { providerId: "together", costPer1MInput: 0.2, costPer1MOutput: 0.6, blendedCost: 0.3, tokensPerSecond: 95 },
-      { providerId: "fireworks", costPer1MInput: 0.22, costPer1MOutput: 0.65, blendedCost: 0.33, tokensPerSecond: 105 },
-      { providerId: "bedrock", costPer1MInput: 0.32, costPer1MOutput: 0.97, blendedCost: 0.48, tokensPerSecond: 80 },
+      { providerId: "openai", costPer1MInput: 2.50, costPer1MOutput: 10.00, costPer1MCachedInput: 1.25, tokensPerSecond: 134 },
     ],
   },
   {
     id: "gpt-4o-mini",
-    name: "GPT-4o Mini",
+    name: "GPT-4o mini",
     labId: "openai",
     contextWindow: 128_000,
     maxOutputTokens: 16_384,
-    knowledgeCutoff: "October 2023",
+    knowledgeCutoff: "2023-10",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2024-07-18",
-    scores: { coding: 80, reasoning: 81, math: 83, general: 84 },
+    releaseUrl: "https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/",
+    scores: { codingLive: 23, reasoning: 43, reasoningHle: 4, math: 15, mathBenchmark: "AIME 2025", general: 65, elo: 1318 },
     providers: [
-      { providerId: "openai", costPer1MInput: 0.15, costPer1MOutput: 0.6, blendedCost: 0.26, tokensPerSecond: 130 },
-      { providerId: "azure", costPer1MInput: 0.15, costPer1MOutput: 0.6, blendedCost: 0.26, tokensPerSecond: 120 },
+      { providerId: "openai", costPer1MInput: 0.15, costPer1MOutput: 0.60, costPer1MCachedInput: 0.075, tokensPerSecond: 54 },
     ],
   },
   {
-    id: "gemini-2-flash",
-    name: "Gemini 2.0 Flash",
-    labId: "google",
-    contextWindow: 1_000_000,
-    maxOutputTokens: 8_192,
-    knowledgeCutoff: "Early 2025",
-    supportsImages: true,
-    openWeights: false,
-    releaseDate: "2025-02-05",
-    scores: { coding: 82, reasoning: 83, math: 85, general: 86 },
-    providers: [
-      { providerId: "google", costPer1MInput: 0.1, costPer1MOutput: 0.4, blendedCost: 0.18, tokensPerSecond: 150 },
-      { providerId: "vertex", costPer1MInput: 0.1, costPer1MOutput: 0.4, blendedCost: 0.18, tokensPerSecond: 140 },
-    ],
-  },
-  {
-    id: "claude-haiku-4",
-    name: "Claude Haiku 4",
-    labId: "anthropic",
-    contextWindow: 200_000,
-    maxOutputTokens: 8_192,
-    knowledgeCutoff: "Early 2025",
-    supportsImages: true,
-    openWeights: false,
-    releaseDate: "2025-05-22",
-    scores: { coding: 78, reasoning: 79, math: 77, general: 82 },
-    providers: [
-      { providerId: "anthropic", costPer1MInput: 0.8, costPer1MOutput: 4, blendedCost: 1.6, tokensPerSecond: 120 },
-      { providerId: "bedrock", costPer1MInput: 0.8, costPer1MOutput: 4, blendedCost: 1.6, tokensPerSecond: 110 },
-    ],
-  },
-  {
-    id: "qwen-3-72b",
-    name: "Qwen 3 72B",
-    labId: "alibaba",
-    contextWindow: 128_000,
+    id: "gpt-4.1",
+    name: "GPT-4.1",
+    labId: "openai",
+    contextWindow: 1_048_576,
     maxOutputTokens: 32_768,
-    knowledgeCutoff: "Late 2024",
-    parameters: { total: 72 },
-    supportsImages: false,
-    openWeights: true,
-    releaseDate: "2025-04-29",
-    scores: { coding: 85, reasoning: 82, math: 84, general: 80 },
-    providers: [
-      { providerId: "together", costPer1MInput: 0.4, costPer1MOutput: 1.2, blendedCost: 0.6, tokensPerSecond: 55 },
-      { providerId: "fireworks", costPer1MInput: 0.35, costPer1MOutput: 1.0, blendedCost: 0.51, tokensPerSecond: 65 },
-    ],
-  },
-  {
-    id: "mistral-large",
-    name: "Mistral Large 2",
-    labId: "mistral",
-    contextWindow: 128_000,
-    maxOutputTokens: 8_192,
-    knowledgeCutoff: "Mid 2024",
-    parameters: { total: 123 },
+    knowledgeCutoff: "2024-06",
     supportsImages: true,
-    openWeights: true,
-    releaseDate: "2024-07-24",
-    scores: { coding: 80, reasoning: 82, math: 79, general: 81 },
+    openWeights: false,
+    releaseDate: "2025-04-14",
+    releaseUrl: "https://openai.com/index/gpt-4-1/",
+    scores: { coding: 55, codingLive: 46, reasoning: 67, reasoningHle: 5, math: 35, mathBenchmark: "AIME 2025", general: 81, elo: 1413 },
     providers: [
-      { providerId: "mistral", costPer1MInput: 2, costPer1MOutput: 6, blendedCost: 3, tokensPerSecond: 65 },
-      { providerId: "bedrock", costPer1MInput: 2.2, costPer1MOutput: 6.6, blendedCost: 3.3, tokensPerSecond: 55 },
-      { providerId: "azure", costPer1MInput: 2, costPer1MOutput: 6, blendedCost: 3, tokensPerSecond: 60 },
+      { providerId: "openai", costPer1MInput: 2.00, costPer1MOutput: 8.00, costPer1MCachedInput: 0.50, tokensPerSecond: 67 },
     ],
   },
   {
-    id: "command-r-plus",
-    name: "Command R+",
-    labId: "cohere",
-    contextWindow: 128_000,
-    maxOutputTokens: 4_096,
-    knowledgeCutoff: "Early 2024",
-    parameters: { total: 104 },
-    supportsImages: false,
-    openWeights: true,
-    releaseDate: "2024-04-04",
-    scores: { coding: 75, reasoning: 79, math: 76, general: 80 },
-    providers: [
-      { providerId: "cohere", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 50 },
-      { providerId: "bedrock", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 45 },
-    ],
-  },
-  {
-    id: "phi-4",
-    name: "Phi-4",
-    labId: "microsoft",
-    contextWindow: 16_000,
-    maxOutputTokens: 16_384,
-    knowledgeCutoff: "Late 2024",
-    parameters: { total: 14 },
-    supportsImages: false,
-    openWeights: true,
-    releaseDate: "2024-12-12",
-    scores: { coding: 79, reasoning: 74, math: 78, general: 72 },
-    providers: [
-      { providerId: "azure", costPer1MInput: 0.07, costPer1MOutput: 0.14, blendedCost: 0.09, tokensPerSecond: 180 },
-      { providerId: "together", costPer1MInput: 0.1, costPer1MOutput: 0.2, blendedCost: 0.13, tokensPerSecond: 200 },
-    ],
-  },
-  {
-    id: "llama-4-scout",
-    name: "Llama 4 Scout",
-    labId: "meta",
-    contextWindow: 10_000_000,
-    maxOutputTokens: 16_384,
-    knowledgeCutoff: "Early 2025",
-    parameters: { total: 109, active: 17 },
+    id: "gpt-4.1-mini",
+    name: "GPT-4.1 mini",
+    labId: "openai",
+    contextWindow: 1_048_576,
+    maxOutputTokens: 32_768,
+    knowledgeCutoff: "2024-06",
     supportsImages: true,
-    openWeights: true,
-    releaseDate: "2025-04-05",
-    scores: { coding: 77, reasoning: 78, math: 80, general: 81 },
+    openWeights: false,
+    releaseDate: "2025-04-14",
+    releaseUrl: "https://openai.com/index/gpt-4-1/",
+    scores: { codingLive: 48, reasoning: 66, reasoningHle: 5, math: 46, mathBenchmark: "AIME 2025", general: 78, elo: 1382 },
     providers: [
-      { providerId: "together", costPer1MInput: 0.15, costPer1MOutput: 0.4, blendedCost: 0.21, tokensPerSecond: 110 },
-      { providerId: "fireworks", costPer1MInput: 0.18, costPer1MOutput: 0.45, blendedCost: 0.25, tokensPerSecond: 120 },
-      { providerId: "bedrock", costPer1MInput: 0.25, costPer1MOutput: 0.7, blendedCost: 0.36, tokensPerSecond: 90 },
+      { providerId: "openai", costPer1MInput: 0.40, costPer1MOutput: 1.60, costPer1MCachedInput: 0.10, tokensPerSecond: 70 },
     ],
   },
   {
-    id: "gemma-3-27b",
-    name: "Gemma 3 27B",
-    labId: "google",
-    contextWindow: 128_000,
-    maxOutputTokens: 8_192,
-    knowledgeCutoff: "Early 2025",
-    parameters: { total: 27 },
+    id: "gpt-4.1-nano",
+    name: "GPT-4.1 nano",
+    labId: "openai",
+    contextWindow: 1_048_576,
+    maxOutputTokens: 32_768,
+    knowledgeCutoff: "2024-06",
     supportsImages: true,
-    openWeights: true,
-    releaseDate: "2025-03-12",
-    scores: { coding: 72, reasoning: 73, math: 75, general: 76 },
+    openWeights: false,
+    releaseDate: "2025-04-14",
+    releaseUrl: "https://openai.com/index/gpt-4-1/",
+    scores: { codingLive: 33, reasoning: 51, reasoningHle: 4, math: 24, mathBenchmark: "AIME 2025", general: 66, elo: 1322 },
     providers: [
-      { providerId: "together", costPer1MInput: 0.1, costPer1MOutput: 0.2, blendedCost: 0.13, tokensPerSecond: 140 },
-      { providerId: "fireworks", costPer1MInput: 0.12, costPer1MOutput: 0.22, blendedCost: 0.15, tokensPerSecond: 155 },
+      { providerId: "openai", costPer1MInput: 0.10, costPer1MOutput: 0.40, costPer1MCachedInput: 0.025, tokensPerSecond: 98 },
+    ],
+  },
+  {
+    id: "o1",
+    name: "o1",
+    labId: "openai",
+    contextWindow: 200_000,
+    maxOutputTokens: 100_000,
+    knowledgeCutoff: "2023-10",
+    supportsImages: true,
+    thinking: { type: "always" },
+    openWeights: false,
+    releaseDate: "2024-09-12",
+    releaseUrl: "https://openai.com/index/introducing-openai-o1-preview/",
+    scores: { coding: 49, codingLive: 68, reasoning: 75, reasoningHle: 8, general: 84, elo: 1402 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 15.00, costPer1MOutput: 60.00, costPer1MCachedInput: 7.50, tokensPerSecond: 160 },
+    ],
+  },
+  {
+    id: "o3",
+    name: "o3",
+    labId: "openai",
+    contextWindow: 200_000,
+    maxOutputTokens: 100_000,
+    knowledgeCutoff: "2024-06",
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "low / medium / high" },
+    openWeights: false,
+    releaseDate: "2025-04-16",
+    releaseUrl: "https://openai.com/index/introducing-o3-and-o4-mini/",
+    scores: { coding: 69, codingLive: 81, reasoning: 83, reasoningHle: 20, math: 88, mathBenchmark: "AIME 2025", general: 85, elo: 1432 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 2.00, costPer1MOutput: 8.00, costPer1MCachedInput: 0.50, tokensPerSecond: 109 },
+    ],
+  },
+  {
+    id: "o4-mini",
+    name: "o4-mini",
+    labId: "openai",
+    contextWindow: 200_000,
+    maxOutputTokens: 100_000,
+    knowledgeCutoff: "2024-06",
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "low / medium / high" },
+    openWeights: false,
+    releaseDate: "2025-04-16",
+    releaseUrl: "https://openai.com/index/introducing-o3-and-o4-mini/",
+    scores: { coding: 68, codingLive: 86, reasoning: 78, reasoningHle: 18, math: 91, mathBenchmark: "AIME 2025", general: 83 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 1.10, costPer1MOutput: 4.40, costPer1MCachedInput: 0.275, tokensPerSecond: 116 },
+    ],
+  },
+  {
+    id: "gpt-5",
+    name: "GPT-5",
+    labId: "openai",
+    contextWindow: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2024-09",
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "low / medium / high" },
+    openWeights: false,
+    releaseDate: "2025-08-07",
+    releaseUrl: "https://openai.com/index/introducing-gpt-5/",
+    scores: { coding: 75, codingLive: 85, reasoning: 85, reasoningHle: 27, math: 94, mathBenchmark: "AIME 2025", general: 87, elo: 1434 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 89 },
+    ],
+  },
+  {
+    id: "gpt-5-mini",
+    name: "GPT-5 mini",
+    labId: "openai",
+    contextWindow: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2024-05",
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "low / medium / high" },
+    openWeights: false,
+    releaseDate: "2025-08-07",
+    releaseUrl: "https://openai.com/index/introducing-gpt-5/",
+    scores: { codingLive: 84, reasoning: 83, reasoningHle: 20, math: 91, mathBenchmark: "AIME 2025", general: 84 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 0.25, costPer1MOutput: 2.00, costPer1MCachedInput: 0.025, tokensPerSecond: 74 },
+    ],
+  },
+  {
+    id: "gpt-5-nano",
+    name: "GPT-5 nano",
+    labId: "openai",
+    contextWindow: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2024-05",
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "low / medium / high" },
+    openWeights: false,
+    releaseDate: "2025-08-07",
+    releaseUrl: "https://openai.com/index/introducing-gpt-5/",
+    scores: { codingLive: 79, reasoning: 68, reasoningHle: 8, math: 84, mathBenchmark: "AIME 2025", general: 78, elo: 1338 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 0.05, costPer1MOutput: 0.40, costPer1MCachedInput: 0.005, tokensPerSecond: 128 },
+    ],
+  },
+  {
+    id: "gpt-5.1",
+    name: "GPT-5.1",
+    labId: "openai",
+    contextWindow: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2024-09",
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "low / medium / high" },
+    openWeights: false,
+    releaseDate: "2025-11-12",
+    releaseUrl: "https://openai.com/index/gpt-5-1/",
+    scores: { coding: 76, codingLive: 87, reasoning: 87, reasoningHle: 27, math: 94, mathBenchmark: "AIME 2025", general: 87, elo: 1458 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 124 },
+    ],
+  },
+  {
+    id: "gpt-5.2",
+    name: "GPT-5.2",
+    labId: "openai",
+    contextWindow: 400_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2025-08",
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "low / medium / high / xhigh" },
+    openWeights: false,
+    releaseDate: "2025-12-11",
+    releaseUrl: "https://openai.com/index/introducing-gpt-5-2/",
+    scores: { coding: 80, codingLive: 89, reasoning: 90, reasoningHle: 35, math: 99, mathBenchmark: "AIME 2025", general: 87, elo: 1441 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 1.75, costPer1MOutput: 14.00, costPer1MCachedInput: 0.175, tokensPerSecond: 87 },
     ],
   },
 ];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Model, bestCost, bestSpeed, formatContext, formatParams, getLab, getProvider, overallScore } from "@/data/models";
+import { Model, bestCost, bestSpeed, blendedCost, formatContext, formatParams, getLab, getProvider, overallScore } from "@/data/models";
 import BrandIcon from "./BrandIcon";
 
 type Phase = "enter" | "open" | "closing";
@@ -103,17 +103,21 @@ export default function ModelDetail({
   const score = overallScore(model);
 
   const speedProviders = [...model.providers].sort((a, b) => b.tokensPerSecond - a.tokensPerSecond);
-  const costProviders = [...model.providers].sort((a, b) => a.blendedCost - b.blendedCost);
+  const costProviders = [...model.providers].sort((a, b) => blendedCost(a) - blendedCost(b));
   const maxSpeed = Math.max(...model.providers.map((p) => p.tokensPerSecond));
-  const maxCost = Math.max(...model.providers.map((p) => p.blendedCost));
+  const maxCost = Math.max(...model.providers.map((p) => blendedCost(p)));
 
   const barData: { label: string; pct: number; display: string; providerId?: string }[] =
     selectedTile === "intelligence"
       ? [
-          { label: "Coding", pct: model.scores.coding, display: model.scores.coding.toString() },
-          { label: "Reasoning", pct: model.scores.reasoning, display: model.scores.reasoning.toString() },
-          { label: "Math", pct: model.scores.math, display: model.scores.math.toString() },
-          { label: "General", pct: model.scores.general, display: model.scores.general.toString() },
+          ...(model.scores.coding != null ? [{ label: "Coding (SWE-Bench)", pct: model.scores.coding, display: model.scores.coding.toString() }] : []),
+          ...(model.scores.codingLive != null ? [{ label: "Coding (LiveCode)", pct: model.scores.codingLive, display: model.scores.codingLive.toString() }] : []),
+          { label: "Reasoning (GPQA)", pct: model.scores.reasoning, display: model.scores.reasoning.toString() },
+          ...(model.scores.reasoningHle != null ? [{ label: "Reasoning (HLE)", pct: model.scores.reasoningHle, display: model.scores.reasoningHle.toString() }] : []),
+          ...(model.scores.math != null ? [{ label: `Math (${model.scores.mathBenchmark})`, pct: model.scores.math, display: model.scores.math.toString() }] : []),
+          { label: "General (MMLU-Pro)", pct: model.scores.general, display: model.scores.general.toString() },
+          ...(model.scores.multimodal != null ? [{ label: "Multimodal (MMMU-Pro)", pct: model.scores.multimodal, display: model.scores.multimodal.toString() }] : []),
+          ...(model.scores.elo != null ? [{ label: "Human Pref (Elo)", pct: Math.min(100, ((model.scores.elo - 800) / 600) * 100), display: model.scores.elo.toString() }] : []),
         ]
       : selectedTile === "speed"
         ? speedProviders.map((p) => ({
@@ -124,8 +128,8 @@ export default function ModelDetail({
           }))
         : costProviders.map((p) => ({
             label: getProvider(p.providerId)?.name ?? p.providerId,
-            pct: (p.blendedCost / maxCost) * 100,
-            display: `$${fmtCost(p.blendedCost)}`,
+            pct: (blendedCost(p) / maxCost) * 100,
+            display: `$${fmtCost(blendedCost(p))}`,
             providerId: p.providerId,
           }));
 
@@ -157,14 +161,14 @@ export default function ModelDetail({
           case "provider": cmp = (getProvider(a.providerId)?.name ?? "").localeCompare(getProvider(b.providerId)?.name ?? ""); break;
           case "input": cmp = a.costPer1MInput - b.costPer1MInput; break;
           case "output": cmp = a.costPer1MOutput - b.costPer1MOutput; break;
-          case "blended": cmp = a.blendedCost - b.blendedCost; break;
+          case "blended": cmp = blendedCost(a) - blendedCost(b); break;
           case "speed": cmp = a.tokensPerSecond - b.tokensPerSecond; break;
         }
         return provSortAsc ? cmp : -cmp;
       })
     : [...model.providers];
 
-  const modalWidth = Math.min(640, window.innerWidth - 48);
+  const modalWidth = Math.min(720, window.innerWidth - 48);
   const targetLeft = (window.innerWidth - modalWidth) / 2;
 
   const isOpen = phase === "open";
@@ -280,7 +284,7 @@ export default function ModelDetail({
           <div className="space-y-2">
             {barData.map((s) => (
               <div key={s.label} className="flex items-center gap-3">
-                <span className="text-[13px] text-foreground-secondary w-28 shrink-0 truncate flex items-center gap-1.5">
+                <span className="text-[13px] text-foreground-secondary w-40 shrink-0 truncate flex items-center gap-1.5">
                   {s.providerId && <BrandIcon id={s.providerId} size={14} className="shrink-0" />}
                   {s.label}
                 </span>
@@ -353,6 +357,18 @@ export default function ModelDetail({
                     </td>
                   </tr>
                   <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                    <td className="py-2.5 text-foreground-secondary">Thinking</td>
+                    <td className={`py-2.5 text-right font-medium ${model.thinking ? "text-sys-blue" : "text-foreground"}`}>
+                      <span className="inline-flex items-center gap-1.5 justify-end">
+                        {model.thinking
+                          ? model.thinking.type === "controllable"
+                            ? `Controllable${model.thinking.budgetRange ? ` (${model.thinking.budgetRange})` : ""}`
+                            : "Always On"
+                          : "No"}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
                     <td className="py-2.5 text-foreground-secondary">Vision</td>
                     <td className={`py-2.5 text-right font-medium ${model.supportsImages ? "text-sys-pink" : "text-foreground"}`}>
                       <span className="inline-flex items-center gap-1.5 justify-end">
@@ -411,7 +427,7 @@ export default function ModelDetail({
                           ${fmtCost(p.costPer1MOutput)}
                         </td>
                         <td className="py-3 text-right font-medium">
-                          ${fmtCost(p.blendedCost)}
+                          ${fmtCost(blendedCost(p))}
                         </td>
                         <td className="py-3 text-right font-medium">
                           {p.tokensPerSecond}

@@ -11,7 +11,7 @@ import BrandIcon from "@/components/BrandIcon";
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export default function Home() {
-  const [minScore, setMinScore] = useState(70);
+  const [minScore, setMinScore] = useState(0);
   const [minSpeedVal, setMinSpeedVal] = useState(0);
   const [requireVision, setRequireVision] = useState(false);
   const [requireOpenWeights, setRequireOpenWeights] = useState(false);
@@ -181,13 +181,13 @@ export default function Home() {
             </div>
             <div
               style={{
-                opacity: minScore !== 70 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? 1 : 0,
+                opacity: minScore !== 0 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? 1 : 0,
                 transition: `opacity 0.25s ${EASING}`,
-                pointerEvents: minScore !== 70 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? "auto" : "none",
+                pointerEvents: minScore !== 0 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? "auto" : "none",
               }}
             >
               <button
-                onClick={() => { setMinScore(70); setMinSpeedVal(0); setRequireVision(false); setRequireOpenWeights(false); }}
+                onClick={() => { setMinScore(0); setMinSpeedVal(0); setRequireVision(false); setRequireOpenWeights(false); }}
                 className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-[var(--card-bg)] transition-colors cursor-pointer h-[44px] px-6 rounded-full"
               >
                 Reset
@@ -263,7 +263,7 @@ export default function Home() {
             onClick={() => { setOptionsOpen((o) => !o); setAboutOpen(false); }}
             className={`text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
               (() => {
-                const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+                const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
                 return count > 0
                   ? "text-accent"
                   : optionsOpen
@@ -273,7 +273,7 @@ export default function Home() {
             }`}
           >
             {(() => {
-              const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+              const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
               return count > 0 ? `${count} Option${count > 1 ? "s" : ""} Applied` : "Options";
             })()}
           </button>

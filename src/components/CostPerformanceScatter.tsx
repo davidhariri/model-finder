@@ -9,6 +9,7 @@ import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
 import {
   Model,
+  blendedCost,
   costRange,
   speedRange,
   getLab,
@@ -60,9 +61,8 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   const isCost = mode === "cost";
 
   // Always compute both scales so we can transition between them
-  const allCosts = models.flatMap((m) => m.providers.map((p) => p.blendedCost));
   const costXScale = scaleLog({
-    domain: [Math.max(0.05, Math.min(...allCosts) * 0.7), Math.max(...allCosts) * 1.3],
+    domain: [0.1, 50],
     range: [0, innerWidth],
   });
 
@@ -72,8 +72,9 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
     range: [0, innerWidth],
   });
 
+  const minScore = Math.min(...models.map((m) => overallScore(m)));
   const yScale = scaleLinear({
-    domain: [65, 100],
+    domain: [Math.max(0, minScore - 5), 100],
     range: [innerHeight, 0],
   });
 
@@ -128,7 +129,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
             <AxisBottom
               top={innerHeight}
               scale={costXScale}
-              tickValues={[0.1, 0.3, 1, 3, 10, 30]}
+              tickValues={[0.1, 0.3, 1, 3, 10, 30, 50]}
               tickFormat={(v) => {
                 const n = Number(v);
                 return `$${n.toFixed(2)}`;
@@ -379,7 +380,7 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
       <ParentSize>
         {({ width }) =>
           width > 0 ? (
-            <Chart models={models} width={width} height={420} mode={mode} onModelClick={onModelClick} onAboutClick={onAboutClick} />
+            <Chart models={models} width={width} height={520} mode={mode} onModelClick={onModelClick} onAboutClick={onAboutClick} />
           ) : null
         }
       </ParentSize>
