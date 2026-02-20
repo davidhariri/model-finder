@@ -25,6 +25,8 @@ export default function ModelDetail({
 }: ModelDetailProps) {
   const [phase, setPhase] = useState<Phase>("enter");
   const [selectedTile, setSelectedTile] = useState<Tile>("intelligence");
+  const [provSortCol, setProvSortCol] = useState<"provider" | "input" | "output" | "blended" | "speed" | null>("blended");
+  const [provSortAsc, setProvSortAsc] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Enter -> open on next frame
@@ -92,8 +94,35 @@ export default function ModelDetail({
       ? "linear-gradient(90deg, var(--bar-fill-start), var(--bar-fill-end))"
       : selectedTile === "speed"
         ? "linear-gradient(90deg, var(--speed-bar-start), var(--speed-bar-end))"
-        : "linear-gradient(90deg, #ff9f0a, #ffb340)";
+        : "linear-gradient(90deg, var(--cost-bar-start), var(--cost-bar-end))";
 
+
+  function toggleProvSort(col: string) {
+    if (provSortCol === col) {
+      if (provSortAsc) {
+        setProvSortCol(null);
+      } else {
+        setProvSortAsc(true);
+      }
+    } else {
+      setProvSortCol(col as typeof provSortCol);
+      setProvSortAsc(false);
+    }
+  }
+
+  const sortedProviders = provSortCol
+    ? [...model.providers].sort((a, b) => {
+        let cmp = 0;
+        switch (provSortCol) {
+          case "provider": cmp = (getProvider(a.providerId)?.name ?? "").localeCompare(getProvider(b.providerId)?.name ?? ""); break;
+          case "input": cmp = a.costPer1MInput - b.costPer1MInput; break;
+          case "output": cmp = a.costPer1MOutput - b.costPer1MOutput; break;
+          case "blended": cmp = a.blendedCost - b.blendedCost; break;
+          case "speed": cmp = a.tokensPerSecond - b.tokensPerSecond; break;
+        }
+        return provSortAsc ? cmp : -cmp;
+      })
+    : [...model.providers];
 
   const modalWidth = Math.min(640, window.innerWidth - 48);
   const targetLeft = (window.innerWidth - modalWidth) / 2;
@@ -223,7 +252,14 @@ export default function ModelDetail({
             <tbody>
               <SpecRow label="Context Window" value={formatContext(model.contextWindow)} />
               <SpecRow label="Inputs" value={model.supportsImages ? "Text, Image" : "Text"} />
-              <SpecRow label="Outputs" value="Text" isLast />
+              <SpecRow label="Outputs" value="Text" />
+              <SpecRow label="Released" value={formatDate(model.releaseDate)} />
+              <tr style={{ borderTop: "1px solid var(--card-border)" }}>
+                <td className="py-2.5 text-foreground-secondary">License</td>
+                <td className={`py-2.5 text-right font-medium ${model.openWeights ? "text-green-600" : "text-foreground"}`}>
+                  {model.openWeights ? "Open Weights" : "Closed"}
+                </td>
+              </tr>
             </tbody>
           </table>
 
@@ -232,17 +268,17 @@ export default function ModelDetail({
             <table className="w-full text-[13px]">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                  <th className="text-left text-[12px] font-medium text-foreground-tertiary pb-2">Provider</th>
-                  <th className="text-right text-[12px] font-medium text-foreground-tertiary pb-2">Input</th>
-                  <th className="text-right text-[12px] font-medium text-foreground-tertiary pb-2">Output</th>
-                  <th className="text-right text-[12px] font-medium text-foreground-tertiary pb-2">Blended</th>
-                  <th className="text-right text-[12px] font-medium text-foreground-tertiary pb-2">Speed</th>
+                  <SortTh col="provider" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="left">Provider</SortTh>
+                  <SortTh col="input" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Input</SortTh>
+                  <SortTh col="output" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Output</SortTh>
+                  <SortTh col="blended" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Blended</SortTh>
+                  <SortTh col="speed" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Speed</SortTh>
                 </tr>
               </thead>
               <tbody>
-                {model.providers.map((p, i) => {
+                {sortedProviders.map((p, i) => {
                   const provider = getProvider(p.providerId);
-                  const isLast = i === model.providers.length - 1;
+                  const isLast = i === sortedProviders.length - 1;
                   return (
                     <tr
                       key={p.providerId}
@@ -285,6 +321,11 @@ export default function ModelDetail({
   );
 }
 
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
 function fmtCost(v: number) {
   return v.toFixed(2);
 }
@@ -317,6 +358,27 @@ function SpecRow({ label, value }: { label: string; value: string; isLast?: bool
       <td className="py-2.5 text-foreground-secondary">{label}</td>
       <td className="py-2.5 text-right font-medium text-foreground">{value}</td>
     </tr>
+  );
+}
+
+function SortTh<T extends string>({ col, current, asc, onSort, align, children }: {
+  col: T;
+  current: T | null;
+  asc: boolean;
+  onSort: (col: T) => void;
+  align: "left" | "right";
+  children: React.ReactNode;
+}) {
+  const active = current === col;
+  return (
+    <th
+      onClick={() => onSort(col)}
+      className={`text-${align} text-[12px] font-medium pb-2 cursor-pointer select-none transition-colors ${
+        active ? "text-foreground" : "text-foreground-tertiary hover:text-foreground-secondary"
+      }`}
+    >
+      {children}
+    </th>
   );
 }
 

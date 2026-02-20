@@ -18,6 +18,7 @@ import {
 
 interface ScatterProps {
   models: Model[];
+  onModelClick?: (model: Model) => void;
 }
 
 interface ChartProps extends ScatterProps {
@@ -35,7 +36,7 @@ const MIN_SAUSAGE_WIDTH = 12;
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 const DURATION = "0.6s";
 
-function Chart({ models, width, height, mode }: ChartProps) {
+function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
   const margin = { top: 24, right: 32, bottom: 72, left: 64 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -182,6 +183,7 @@ function Chart({ models, width, height, mode }: ChartProps) {
                     });
                   }}
                   onMouseLeave={hideTooltip}
+                  onClick={() => onModelClick?.(model)}
                   style={{
                     x: sausageX,
                     y: cy - SAUSAGE_HEIGHT / 2,
@@ -290,7 +292,7 @@ const MODES: ScatterMode[] = ["cost", "speed"];
 const MODE_LABELS: Record<ScatterMode, string> = { cost: "Cost", speed: "Speed" };
 const ITEM_HEIGHT = 36; // px — matches text-2xl line height
 
-export default function CostPerformanceScatter({ models }: ScatterProps) {
+export default function CostPerformanceScatter({ models, onModelClick }: ScatterProps) {
   const [mode, setMode] = useState<ScatterMode>("cost");
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [skipTransition, setSkipTransition] = useState(false);
@@ -355,7 +357,7 @@ export default function CostPerformanceScatter({ models }: ScatterProps) {
       <ParentSize>
         {({ width }) =>
           width > 0 ? (
-            <Chart models={models} width={width} height={420} mode={mode} />
+            <Chart models={models} width={width} height={420} mode={mode} onModelClick={onModelClick} />
           ) : null
         }
       </ParentSize>

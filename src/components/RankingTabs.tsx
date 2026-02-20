@@ -17,6 +17,7 @@ const MODEL_COUNT = 8;
 interface RankingTabsProps {
   models: Model[];
   minScore: number;
+  onModelClick?: (model: Model) => void;
 }
 
 interface ChartProps {
@@ -25,6 +26,7 @@ interface ChartProps {
   width: number;
   height: number;
   animKey: number;
+  onModelClick?: (model: Model) => void;
 }
 
 function getValue(model: Model, tab: Tab): number {
@@ -33,7 +35,7 @@ function getValue(model: Model, tab: Tab): number {
   return bestCost(model);
 }
 
-function Chart({ models, tab, width, height, animKey }: ChartProps) {
+function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps) {
   const sorted =
     tab === "cost"
       ? [...models].sort((a, b) => bestCost(a) - bestCost(b)) // cheapest first
@@ -43,7 +45,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
 
   const axisLabels: Record<Tab, string> = {
     intelligence: "Average score",
-    speed: "Tokens per second",
+    speed: "Best provider tokens per second",
     cost: "Blended cost per 1M tokens (USD)",
   };
   const isCost = tab === "cost";
@@ -137,8 +139,8 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
         />
         <LinearGradient
           id="rank-cost-input"
-          from="#ff9f0a"
-          to="#ffb340"
+          from="var(--cost-bar-start)"
+          to="var(--cost-bar-end)"
           x1={0}
           x2={1}
           y1={0}
@@ -146,8 +148,8 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
         />
         <LinearGradient
           id="rank-cost-output"
-          from="#ff6723"
-          to="#ff8a50"
+          from="var(--cost-bar-output-start)"
+          to="var(--cost-bar-output-end)"
           x1={0}
           x2={1}
           y1={0}
@@ -186,6 +188,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                   style={{ transition: barTransition, cursor: "pointer" }}
                   onMouseMove={handleMouseMove(model)}
                   onMouseLeave={hideTooltip}
+                  onClick={() => onModelClick?.(model)}
                 />
                 <Text
                   x={barW + 8}
@@ -286,7 +289,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                             className="h-full rounded-full"
                             style={{
                               width: `${(p.costPer1MInput / maxOutput) * 100}%`,
-                              background: "linear-gradient(to right, #ff9f0a, #ffb340)",
+                              background: "linear-gradient(to right, var(--cost-bar-start), var(--cost-bar-end))",
                             }}
                           />
                         </div>
@@ -301,7 +304,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                             className="h-full rounded-full"
                             style={{
                               width: `${(p.costPer1MOutput / maxOutput) * 100}%`,
-                              background: "linear-gradient(to right, #ff6723, #ff8a50)",
+                              background: "linear-gradient(to right, var(--cost-bar-output-start), var(--cost-bar-output-end))",
                             }}
                           />
                         </div>
@@ -320,7 +323,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
   );
 }
 
-export default function RankingTabs({ models, minScore }: RankingTabsProps) {
+export default function RankingTabs({ models, minScore, onModelClick }: RankingTabsProps) {
   const [tab, setTab] = useState<Tab>("intelligence");
   const [animKey, setAnimKey] = useState(0);
   const [slideDir, setSlideDir] = useState<"left" | "right">("right");
@@ -389,13 +392,6 @@ export default function RankingTabs({ models, minScore }: RankingTabsProps) {
           Cost
         </button>
       </div>
-      <p className="text-sm text-foreground-tertiary mb-8 text-center">
-        {tab === "intelligence"
-          ? "Top models by composite score across reasoning, coding, math, and knowledge"
-          : tab === "speed"
-            ? "Top models by output tokens per second (best provider)"
-            : `Cheapest models with an intelligence score of ${minScore}+`}
-      </p>
       <div
         ref={containerRef}
         style={{
@@ -414,6 +410,7 @@ export default function RankingTabs({ models, minScore }: RankingTabsProps) {
                 width={width}
                 height={chartHeight}
                 animKey={animKey}
+                onModelClick={onModelClick}
               />
             ) : null
           }
