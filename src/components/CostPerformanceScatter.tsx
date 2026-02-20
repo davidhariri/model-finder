@@ -78,7 +78,7 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
   const axisLabelProps = {
     fill: "var(--foreground-secondary)",
     fontSize: 12,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
     textAnchor: "middle" as const,
     fontWeight: 500,
   };
@@ -86,7 +86,7 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
   const tickLabelFn = () => ({
     fill: "var(--foreground-tertiary)",
     fontSize: 11,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
     textAnchor: "middle" as const,
     dy: 4,
   });
@@ -136,7 +136,7 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
             tickLabelProps={() => ({
               fill: "var(--foreground-tertiary)",
               fontSize: 11,
-              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
               textAnchor: "end" as const,
               dx: -4,
               dy: 3,
@@ -207,7 +207,7 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
                       textAnchor="middle"
                       fill="var(--background)"
                       fontSize={10}
-                      fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+                      fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
                       fontWeight={500}
                       opacity={tooltipOpen ? 1 : 0.85}
                       stroke="var(--background)"
@@ -223,7 +223,7 @@ function Chart({ models, width, height, mode, onModelClick }: ChartProps) {
                       textAnchor="middle"
                       fill="var(--foreground-secondary)"
                       fontSize={10}
-                      fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+                      fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
                       fontWeight={500}
                       opacity={tooltipOpen ? 1 : 0.7}
                       style={{ transition: "opacity 0.2s ease" }}

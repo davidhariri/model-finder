@@ -9,6 +9,7 @@ import { LinearGradient } from "@visx/gradient";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
 import { Model, bestSpeed, bestCost, getLab, getProvider, overallScore } from "@/data/models";
+import BrandIcon from "@/components/BrandIcon";
 
 type Tab = "intelligence" | "speed" | "cost";
 const TABS: Tab[] = ["intelligence", "speed", "cost"];
@@ -68,11 +69,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
       ? 100
       : Math.max(...topN.map((m) => getValue(m, tab))) * 1.15;
 
-  // Always allocate space for MODEL_COUNT slots so bars don't grow when fewer models are shown
-  const yDomain = [
-    ...topN.map((m) => m.id),
-    ...Array.from({ length: MODEL_COUNT - topN.length }, (_, i) => `__empty_${i}`),
-  ];
+  const yDomain = topN.map((m) => m.id);
 
   const yScale = scaleBand({
     domain: yDomain,
@@ -165,18 +162,25 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
             const barW = progress === 1 ? targetWidth : 0;
             return (
               <Group key={model.id}>
-                <Text
-                  x={-12}
-                  y={y + barHeight / 2}
-                  textAnchor="end"
-                  verticalAnchor="middle"
-                  fill="var(--foreground-secondary)"
-                  fontSize={13}
-                  fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
-                  fontWeight={500}
+                <foreignObject
+                  x={-margin.left}
+                  y={y + barHeight / 2 - 10}
+                  width={margin.left - 12}
+                  height={20}
                 >
-                  {model.name}
-                </Text>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, height: "100%", color: "var(--foreground-secondary)" }}>
+                    <BrandIcon id={model.labId} size={14} className="shrink-0" />
+                    <span style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "var(--foreground-secondary)",
+                      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif",
+                      whiteSpace: "nowrap",
+                    }}>
+                      {model.name}
+                    </span>
+                  </div>
+                </foreignObject>
                 <Bar
                   x={0}
                   y={y}
@@ -196,7 +200,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
                   verticalAnchor="middle"
                   fill="var(--foreground)"
                   fontSize={13}
-                  fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+                  fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
                   fontWeight={600}
                   style={{
                     transition: progress === 1 ? "x 0.6s cubic-bezier(0.22, 1, 0.36, 1)" : "none",
@@ -215,7 +219,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
             textAnchor="middle"
             fill="var(--foreground-secondary)"
             fontSize={12}
-            fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+            fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif"
             fontWeight={500}
           >
             {axisLabels[tab]}
@@ -330,7 +334,8 @@ export default function RankingTabs({ models, minScore, onModelClick }: RankingT
   const [transitioning, setTransitioning] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const chartHeight = MODEL_COUNT * 44 + 16 + 36; // bars + bottom axis area
+  const barCount = Math.min(MODEL_COUNT, models.length);
+  const chartHeight = barCount * 44 + 16 + 36; // bars + bottom axis area
 
   const switchTab = useCallback(
     (next: Tab) => {
@@ -398,7 +403,7 @@ export default function RankingTabs({ models, minScore, onModelClick }: RankingT
           height: chartHeight,
           transform: slideTransform,
           opacity: transitioning ? 0 : 1,
-          transition: "transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease",
+          transition: "transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, height 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         <ParentSize>
