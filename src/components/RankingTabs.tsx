@@ -8,14 +8,15 @@ import { Text } from "@visx/text";
 import { LinearGradient } from "@visx/gradient";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
-import { Model, bestSpeed, getLab, overallScore } from "@/data/models";
+import { Model, bestSpeed, bestCost, getLab, getProvider, overallScore } from "@/data/models";
 
-type Tab = "intelligence" | "speed";
-const TABS: Tab[] = ["intelligence", "speed"];
+type Tab = "intelligence" | "speed" | "cost";
+const TABS: Tab[] = ["intelligence", "speed", "cost"];
 const MODEL_COUNT = 8;
 
 interface RankingTabsProps {
   models: Model[];
+  minScore: number;
 }
 
 interface ChartProps {
@@ -27,16 +28,26 @@ interface ChartProps {
 }
 
 function getValue(model: Model, tab: Tab): number {
-  return tab === "intelligence" ? overallScore(model) : bestSpeed(model);
+  if (tab === "intelligence") return overallScore(model);
+  if (tab === "speed") return bestSpeed(model);
+  return bestCost(model);
 }
 
 function Chart({ models, tab, width, height, animKey }: ChartProps) {
-  const topN = [...models]
-    .sort((a, b) => getValue(b, tab) - getValue(a, tab))
-    .slice(0, MODEL_COUNT);
+  const sorted =
+    tab === "cost"
+      ? [...models].sort((a, b) => bestCost(a) - bestCost(b)) // cheapest first
+      : [...models].sort((a, b) => getValue(b, tab) - getValue(a, tab));
 
-  const axisLabel = tab === "intelligence" ? "Average score" : "Tokens per second";
-  const margin = { top: 8, right: 56, bottom: 36, left: 160 };
+  const topN = sorted.slice(0, MODEL_COUNT);
+
+  const axisLabels: Record<Tab, string> = {
+    intelligence: "Average score",
+    speed: "Tokens per second",
+    cost: "Blended cost per 1M tokens (USD)",
+  };
+  const isCost = tab === "cost";
+  const margin = { top: 8, right: 80, bottom: 36, left: 160 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -49,13 +60,20 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
     hideTooltip,
   } = useTooltip<Model>();
 
-  const maxVal =
-    tab === "intelligence"
+  const maxVal = isCost
+    ? Math.max(...topN.map((m) => bestCost(m))) * 1.15
+    : tab === "intelligence"
       ? 100
-      : Math.max(...topN.map((m) => getValue(m, tab))) * 1.1;
+      : Math.max(...topN.map((m) => getValue(m, tab))) * 1.15;
+
+  // Always allocate space for MODEL_COUNT slots so bars don't grow when fewer models are shown
+  const yDomain = [
+    ...topN.map((m) => m.id),
+    ...Array.from({ length: MODEL_COUNT - topN.length }, (_, i) => `__empty_${i}`),
+  ];
 
   const yScale = scaleBand({
-    domain: topN.map((m) => m.id),
+    domain: yDomain,
     range: [0, innerHeight],
     padding: 0.35,
   });
@@ -66,7 +84,12 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
   });
 
   const barHeight = yScale.bandwidth();
-  const gradientId = tab === "intelligence" ? "rank-bar-grad" : "rank-speed-grad";
+  const gradientIds: Record<Tab, string> = {
+    intelligence: "rank-bar-grad",
+    speed: "rank-speed-grad",
+    cost: "rank-cost-input",
+  };
+  const gradientId = gradientIds[tab];
 
   // Animate bars on mount / tab change
   const [progress, setProgress] = useState(0);
@@ -77,6 +100,19 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
     });
     return () => cancelAnimationFrame(raf);
   }, [animKey]);
+
+  const handleMouseMove = (model: Model) => (e: React.MouseEvent) => {
+    const svgRect = e.currentTarget.closest("svg")?.getBoundingClientRect();
+    showTooltip({
+      tooltipData: model,
+      tooltipLeft: e.clientX - (svgRect?.left ?? 0),
+      tooltipTop: e.clientY - (svgRect?.top ?? 0) + 16,
+    });
+  };
+
+  const barTransition = progress === 1
+    ? "width 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease"
+    : "none";
 
   return (
     <div className="relative">
@@ -99,9 +135,29 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
           y1={0}
           y2={0}
         />
+        <LinearGradient
+          id="rank-cost-input"
+          from="#ff9f0a"
+          to="#ffb340"
+          x1={0}
+          x2={1}
+          y1={0}
+          y2={0}
+        />
+        <LinearGradient
+          id="rank-cost-output"
+          from="#ff6723"
+          to="#ff8a50"
+          x1={0}
+          x2={1}
+          y1={0}
+          y2={0}
+        />
         <Group left={margin.left} top={margin.top}>
           {topN.map((model) => {
             const y = yScale(model.id) ?? 0;
+            const dimmed = tooltipOpen && tooltipData?.id !== model.id;
+
             const val = getValue(model, tab);
             const targetWidth = xScale(val);
             const barW = progress === 1 ? targetWidth : 0;
@@ -126,24 +182,9 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                   height={barHeight}
                   rx={barHeight / 2}
                   fill={`url(#${gradientId})`}
-                  opacity={tooltipOpen && tooltipData?.id !== model.id ? 0.4 : 1}
-                  style={{
-                    transition:
-                      progress === 1
-                        ? "width 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease"
-                        : "none",
-                    cursor: "pointer",
-                  }}
-                  onMouseMove={(e) => {
-                    const svgRect = e.currentTarget
-                      .closest("svg")
-                      ?.getBoundingClientRect();
-                    showTooltip({
-                      tooltipData: model,
-                      tooltipLeft: e.clientX - (svgRect?.left ?? 0),
-                      tooltipTop: e.clientY - (svgRect?.top ?? 0) + 16,
-                    });
-                  }}
+                  opacity={dimmed ? 0.4 : 1}
+                  style={{ transition: barTransition, cursor: "pointer" }}
+                  onMouseMove={handleMouseMove(model)}
                   onMouseLeave={hideTooltip}
                 />
                 <Text
@@ -155,19 +196,18 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                   fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
                   fontWeight={600}
                   style={{
-                    transition:
-                      progress === 1
-                        ? "x 0.6s cubic-bezier(0.22, 1, 0.36, 1)"
-                        : "none",
+                    transition: progress === 1 ? "x 0.6s cubic-bezier(0.22, 1, 0.36, 1)" : "none",
                   }}
                 >
-                  {val.toString()}
+                  {isCost
+                    ? `$${val < 1 ? val.toFixed(2) : val.toFixed(1)}`
+                    : val.toString()}
                 </Text>
               </Group>
             );
           })}
           <Text
-            x={innerWidth / 2}
+            x={width / 2 - margin.left}
             y={innerHeight + 28}
             textAnchor="middle"
             fill="var(--foreground-secondary)"
@@ -175,7 +215,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
             fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
             fontWeight={500}
           >
-            {axisLabel}
+            {axisLabels[tab]}
           </Text>
         </Group>
       </svg>
@@ -191,8 +231,15 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
           <div className="opacity-70 text-xs">
             {getLab(tooltipData.labId)?.name}
           </div>
-          {tab === "intelligence" ? (
-            <div className="mt-2 space-y-1.5">
+          {/* Summary stats — always show all three dimensions */}
+          <div className="mt-1.5 flex gap-3 text-[11px] opacity-70">
+            <span>Score: {overallScore(tooltipData)}</span>
+            <span>{bestSpeed(tooltipData)} tok/s</span>
+            <span>${bestCost(tooltipData).toFixed(2)}/1M</span>
+          </div>
+          {/* Tab-specific detail */}
+          {tab === "intelligence" && (
+            <div className="mt-2 pt-2 border-t border-[var(--foreground)]/10 space-y-1.5">
               {(
                 [
                   ["Coding", tooltipData.scores.coding],
@@ -220,18 +267,60 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="mt-1">
-              {bestSpeed(tooltipData)} tok/s
-            </div>
           )}
+          {tab === "cost" && (() => {
+            const maxOutput = Math.max(...tooltipData.providers.map((p) => p.costPer1MOutput));
+            return (
+              <div className="mt-2 pt-2 border-t border-[var(--foreground)]/10 space-y-2">
+                {[...tooltipData.providers]
+                  .sort((a, b) => a.blendedCost - b.blendedCost)
+                  .map((p) => (
+                    <div key={p.providerId}>
+                      <div className="text-[11px] opacity-60 mb-1">
+                        {getProvider(p.providerId)?.name}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] w-8 text-right opacity-50 shrink-0">In</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-[var(--foreground)]/10 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${(p.costPer1MInput / maxOutput) * 100}%`,
+                              background: "linear-gradient(to right, #ff9f0a, #ffb340)",
+                            }}
+                          />
+                        </div>
+                        <span className="text-[11px] w-10 tabular-nums font-medium text-right">
+                          ${p.costPer1MInput < 1 ? p.costPer1MInput.toFixed(2) : p.costPer1MInput.toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] w-8 text-right opacity-50 shrink-0">Out</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-[var(--foreground)]/10 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${(p.costPer1MOutput / maxOutput) * 100}%`,
+                              background: "linear-gradient(to right, #ff6723, #ff8a50)",
+                            }}
+                          />
+                        </div>
+                        <span className="text-[11px] w-10 tabular-nums font-medium text-right">
+                          ${p.costPer1MOutput < 1 ? p.costPer1MOutput.toFixed(2) : p.costPer1MOutput.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            );
+          })()}
         </TooltipWithBounds>
       )}
     </div>
   );
 }
 
-export default function RankingTabs({ models }: RankingTabsProps) {
+export default function RankingTabs({ models, minScore }: RankingTabsProps) {
   const [tab, setTab] = useState<Tab>("intelligence");
   const [animKey, setAnimKey] = useState(0);
   const [slideDir, setSlideDir] = useState<"left" | "right">("right");
@@ -268,7 +357,7 @@ export default function RankingTabs({ models }: RankingTabsProps) {
 
   return (
     <div>
-      <div className="flex gap-6 mb-6">
+      <div className="flex gap-6 mb-6 justify-center">
         <button
           onClick={() => switchTab("intelligence")}
           className={`text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
@@ -289,11 +378,23 @@ export default function RankingTabs({ models }: RankingTabsProps) {
         >
           Speed
         </button>
+        <button
+          onClick={() => switchTab("cost")}
+          className={`text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
+            tab === "cost"
+              ? "text-foreground"
+              : "text-foreground-tertiary hover:text-foreground-secondary"
+          }`}
+        >
+          Cost
+        </button>
       </div>
-      <p className="text-sm text-foreground-tertiary mb-8">
+      <p className="text-sm text-foreground-tertiary mb-8 text-center">
         {tab === "intelligence"
           ? "Top models by composite score across reasoning, coding, math, and knowledge"
-          : "Top models by output tokens per second (best provider)"}
+          : tab === "speed"
+            ? "Top models by output tokens per second (best provider)"
+            : `Cheapest models with an intelligence score of ${minScore}+`}
       </p>
       <div
         ref={containerRef}
