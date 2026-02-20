@@ -102,7 +102,7 @@ function Chart({ models, width, height, mode }: ChartProps) {
               tickValues={[0.1, 0.3, 1, 3, 10, 30]}
               tickFormat={(v) => {
                 const n = Number(v);
-                return `$${n < 1 ? n.toFixed(1) : n.toFixed(0)}`;
+                return `$${n.toFixed(2)}`;
               }}
               stroke="var(--border)"
               tickStroke="var(--border)"

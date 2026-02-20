@@ -200,7 +200,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                   }}
                 >
                   {isCost
-                    ? `$${val < 1 ? val.toFixed(2) : val.toFixed(1)}`
+                    ? `$${val.toFixed(2)}`
                     : val.toString()}
                 </Text>
               </Group>
@@ -291,7 +291,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                           />
                         </div>
                         <span className="text-[11px] w-10 tabular-nums font-medium text-right">
-                          ${p.costPer1MInput < 1 ? p.costPer1MInput.toFixed(2) : p.costPer1MInput.toFixed(1)}
+                          ${p.costPer1MInput.toFixed(2)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -306,7 +306,7 @@ function Chart({ models, tab, width, height, animKey }: ChartProps) {
                           />
                         </div>
                         <span className="text-[11px] w-10 tabular-nums font-medium text-right">
-                          ${p.costPer1MOutput < 1 ? p.costPer1MOutput.toFixed(2) : p.costPer1MOutput.toFixed(1)}
+                          ${p.costPer1MOutput.toFixed(2)}
                         </span>
                       </div>
                     </div>
