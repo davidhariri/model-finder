@@ -1,4 +1,4 @@
-import { Model, bestCost, bestSpeed, getLab } from "@/data/models";
+import { Model, bestCost, bestSpeed, getLab, overallScore } from "@/data/models";
 
 const categoryLabels: Record<Model["category"], string> = {
   frontier: "Frontier",
@@ -43,7 +43,7 @@ export default function ModelCard({ model }: ModelCardProps) {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3">
-        <Stat label="Score" value={model.scores.overall.toString()} />
+        <Stat label="Score" value={overallScore(model).toString()} />
         <Stat
           label="Cost"
           value={`$${cost < 1 ? cost.toFixed(2) : cost.toFixed(0)}`}

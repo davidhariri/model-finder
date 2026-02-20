@@ -1,12 +1,11 @@
-import { models } from "@/data/models";
-import RankingBar from "@/components/RankingBar";
+import { models, overallScore } from "@/data/models";
 import CostPerformanceScatter from "@/components/CostPerformanceScatter";
-import SpeedBar from "@/components/SpeedBar";
+import RankingTabs from "@/components/RankingTabs";
 import ModelCard from "@/components/ModelCard";
 
 export default function Home() {
   const sortedByScore = [...models].sort(
-    (a, b) => b.scores.overall - a.scores.overall
+    (a, b) => overallScore(b) - overallScore(a)
   );
 
   return (
@@ -35,21 +34,10 @@ export default function Home() {
         <CostPerformanceScatter models={models} />
       </Section>
 
-      {/* Intelligence Ranking */}
-      <Section
-        title="Intelligence Ranking"
-        subtitle="Composite score across reasoning, coding, math, and knowledge benchmarks"
-      >
-        <RankingBar models={models} />
-      </Section>
-
-      {/* Speed */}
-      <Section
-        title="Output Speed"
-        subtitle="Tokens per second — smaller models can be surprisingly fast"
-      >
-        <SpeedBar models={models} />
-      </Section>
+      {/* Rankings — tabbed Intelligence / Speed */}
+      <section className="mb-24">
+        <RankingTabs models={models} />
+      </section>
 
       {/* Model Cards */}
       <Section

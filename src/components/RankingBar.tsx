@@ -7,7 +7,7 @@ import { Text } from "@visx/text";
 import { LinearGradient } from "@visx/gradient";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
-import { Model, getLab } from "@/data/models";
+import { Model, getLab, overallScore } from "@/data/models";
 
 interface RankingBarProps {
   models: Model[];
@@ -20,7 +20,7 @@ interface ChartProps extends RankingBarProps {
 
 function Chart({ models, width, height }: ChartProps) {
   const sorted = [...models].sort(
-    (a, b) => b.scores.overall - a.scores.overall
+    (a, b) => overallScore(b) - overallScore(a)
   );
 
   const margin = { top: 8, right: 48, bottom: 8, left: 160 };
@@ -64,7 +64,7 @@ function Chart({ models, width, height }: ChartProps) {
         <Group left={margin.left} top={margin.top}>
           {sorted.map((model) => {
             const y = yScale(model.id) ?? 0;
-            const barWidth = xScale(model.scores.overall);
+            const barWidth = xScale(overallScore(model));
             const lab = getLab(model.labId);
             return (
               <Group key={model.id}>
@@ -110,7 +110,7 @@ function Chart({ models, width, height }: ChartProps) {
                   fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
                   fontWeight={600}
                 >
-                  {model.scores.overall}
+                  {overallScore(model)}
                 </Text>
               </Group>
             );
@@ -129,7 +129,7 @@ function Chart({ models, width, height }: ChartProps) {
           <div className="opacity-70">
             {getLab(tooltipData.labId)?.name}
           </div>
-          <div className="mt-1">Score: {tooltipData.scores.overall}</div>
+          <div className="mt-1">Score: {overallScore(tooltipData)}</div>
         </TooltipWithBounds>
       )}
     </div>

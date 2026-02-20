@@ -7,7 +7,7 @@ import { Text } from "@visx/text";
 import { AxisBottom, AxisLeft } from "@visx/axis";
 import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
-import { Model, costRange, getLab, getProvider } from "@/data/models";
+import { Model, costRange, getLab, getProvider, overallScore } from "@/data/models";
 
 interface ScatterProps {
   models: Model[];
@@ -115,7 +115,7 @@ function Chart({ models, width, height }: ChartProps) {
           />
           {models.map((model) => {
             const [minCost, maxCost] = costRange(model);
-            const cy = yScale(model.scores.overall);
+            const cy = yScale(overallScore(model));
             const x1 = xScale(minCost);
             const x2 = xScale(maxCost);
             const rawWidth = x2 - x1;
@@ -202,11 +202,11 @@ function Chart({ models, width, height }: ChartProps) {
           top={tooltipTop}
           unstyled
           applyPositionStyle
-          className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-3 py-2.5 rounded-xl text-sm shadow-lg pointer-events-none z-50 min-w-[200px]"
+          className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-3 py-2.5 rounded-2xl text-sm shadow-lg pointer-events-none z-50 min-w-[200px]"
         >
           <div className="font-semibold">{tooltipData.name}</div>
           <div className="opacity-70 text-xs">
-            {getLab(tooltipData.labId)?.name} · Score: {tooltipData.scores.overall}
+            {getLab(tooltipData.labId)?.name} · Score: {overallScore(tooltipData)}
           </div>
           <div className="mt-2 space-y-1">
             {[...tooltipData.providers]

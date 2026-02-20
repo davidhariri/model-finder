@@ -19,7 +19,6 @@ export interface ModelProvider {
 }
 
 export interface Scores {
-  overall: number;
   coding: number;
   reasoning: number;
   math: number;
@@ -36,6 +35,12 @@ export interface Model {
 }
 
 // --- Helpers ---
+
+/** Average score across all task benchmarks */
+export function overallScore(model: Model): number {
+  const { coding, reasoning, math, general } = model.scores;
+  return Math.round((coding + reasoning + math + general) / 4);
+}
 
 /** Best (lowest) blended cost across providers */
 export function bestCost(model: Model): number {
@@ -103,7 +108,7 @@ export const models: Model[] = [
     name: "Claude Opus 4",
     labId: "anthropic",
     category: "frontier",
-    scores: { overall: 93, coding: 95, reasoning: 94, math: 90, general: 92 },
+    scores: { coding: 95, reasoning: 94, math: 90, general: 92 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 40 },
       { providerId: "bedrock", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 35 },
@@ -115,7 +120,7 @@ export const models: Model[] = [
     name: "GPT-4o",
     labId: "openai",
     category: "frontier",
-    scores: { overall: 90, coding: 89, reasoning: 91, math: 92, general: 90 },
+    scores: { coding: 89, reasoning: 91, math: 92, general: 90 },
     providers: [
       { providerId: "openai", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 85 },
       { providerId: "azure", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 80 },
@@ -126,7 +131,7 @@ export const models: Model[] = [
     name: "Gemini 2.0 Pro",
     labId: "google",
     category: "frontier",
-    scores: { overall: 89, coding: 87, reasoning: 90, math: 91, general: 88 },
+    scores: { coding: 87, reasoning: 90, math: 91, general: 88 },
     providers: [
       { providerId: "google", costPer1MInput: 1.25, costPer1MOutput: 5, blendedCost: 2.19, tokensPerSecond: 70 },
       { providerId: "vertex", costPer1MInput: 1.25, costPer1MOutput: 5, blendedCost: 2.19, tokensPerSecond: 65 },
@@ -137,7 +142,7 @@ export const models: Model[] = [
     name: "Claude Sonnet 4",
     labId: "anthropic",
     category: "frontier",
-    scores: { overall: 88, coding: 91, reasoning: 87, math: 85, general: 88 },
+    scores: { coding: 91, reasoning: 87, math: 85, general: 88 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 75 },
       { providerId: "bedrock", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 68 },
@@ -149,7 +154,7 @@ export const models: Model[] = [
     name: "DeepSeek V3",
     labId: "deepseek",
     category: "mid",
-    scores: { overall: 86, coding: 88, reasoning: 85, math: 87, general: 83 },
+    scores: { coding: 88, reasoning: 85, math: 87, general: 83 },
     providers: [
       { providerId: "deepseek", costPer1MInput: 0.27, costPer1MOutput: 1.1, blendedCost: 0.48, tokensPerSecond: 60 },
       { providerId: "together", costPer1MInput: 0.35, costPer1MOutput: 1.3, blendedCost: 0.59, tokensPerSecond: 70 },
@@ -161,7 +166,7 @@ export const models: Model[] = [
     name: "Llama 4 Maverick",
     labId: "meta",
     category: "mid",
-    scores: { overall: 85, coding: 83, reasoning: 86, math: 84, general: 87 },
+    scores: { coding: 83, reasoning: 86, math: 84, general: 87 },
     providers: [
       { providerId: "together", costPer1MInput: 0.2, costPer1MOutput: 0.6, blendedCost: 0.3, tokensPerSecond: 95 },
       { providerId: "fireworks", costPer1MInput: 0.22, costPer1MOutput: 0.65, blendedCost: 0.33, tokensPerSecond: 105 },
@@ -173,7 +178,7 @@ export const models: Model[] = [
     name: "GPT-4o Mini",
     labId: "openai",
     category: "efficient",
-    scores: { overall: 82, coding: 80, reasoning: 81, math: 83, general: 84 },
+    scores: { coding: 80, reasoning: 81, math: 83, general: 84 },
     providers: [
       { providerId: "openai", costPer1MInput: 0.15, costPer1MOutput: 0.6, blendedCost: 0.26, tokensPerSecond: 130 },
       { providerId: "azure", costPer1MInput: 0.15, costPer1MOutput: 0.6, blendedCost: 0.26, tokensPerSecond: 120 },
@@ -184,7 +189,7 @@ export const models: Model[] = [
     name: "Gemini 2.0 Flash",
     labId: "google",
     category: "efficient",
-    scores: { overall: 84, coding: 82, reasoning: 83, math: 85, general: 86 },
+    scores: { coding: 82, reasoning: 83, math: 85, general: 86 },
     providers: [
       { providerId: "google", costPer1MInput: 0.1, costPer1MOutput: 0.4, blendedCost: 0.18, tokensPerSecond: 150 },
       { providerId: "vertex", costPer1MInput: 0.1, costPer1MOutput: 0.4, blendedCost: 0.18, tokensPerSecond: 140 },
@@ -195,7 +200,7 @@ export const models: Model[] = [
     name: "Claude Haiku 4",
     labId: "anthropic",
     category: "efficient",
-    scores: { overall: 80, coding: 78, reasoning: 79, math: 77, general: 82 },
+    scores: { coding: 78, reasoning: 79, math: 77, general: 82 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 0.8, costPer1MOutput: 4, blendedCost: 1.6, tokensPerSecond: 120 },
       { providerId: "bedrock", costPer1MInput: 0.8, costPer1MOutput: 4, blendedCost: 1.6, tokensPerSecond: 110 },
@@ -206,7 +211,7 @@ export const models: Model[] = [
     name: "Qwen 3 72B",
     labId: "alibaba",
     category: "mid",
-    scores: { overall: 83, coding: 85, reasoning: 82, math: 84, general: 80 },
+    scores: { coding: 85, reasoning: 82, math: 84, general: 80 },
     providers: [
       { providerId: "together", costPer1MInput: 0.4, costPer1MOutput: 1.2, blendedCost: 0.6, tokensPerSecond: 55 },
       { providerId: "fireworks", costPer1MInput: 0.35, costPer1MOutput: 1.0, blendedCost: 0.51, tokensPerSecond: 65 },
@@ -217,7 +222,7 @@ export const models: Model[] = [
     name: "Mistral Large 2",
     labId: "mistral",
     category: "mid",
-    scores: { overall: 81, coding: 80, reasoning: 82, math: 79, general: 81 },
+    scores: { coding: 80, reasoning: 82, math: 79, general: 81 },
     providers: [
       { providerId: "mistral", costPer1MInput: 2, costPer1MOutput: 6, blendedCost: 3, tokensPerSecond: 65 },
       { providerId: "bedrock", costPer1MInput: 2.2, costPer1MOutput: 6.6, blendedCost: 3.3, tokensPerSecond: 55 },
@@ -229,7 +234,7 @@ export const models: Model[] = [
     name: "Command R+",
     labId: "cohere",
     category: "mid",
-    scores: { overall: 78, coding: 75, reasoning: 79, math: 76, general: 80 },
+    scores: { coding: 75, reasoning: 79, math: 76, general: 80 },
     providers: [
       { providerId: "cohere", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 50 },
       { providerId: "bedrock", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 45 },
@@ -240,7 +245,7 @@ export const models: Model[] = [
     name: "Phi-4",
     labId: "microsoft",
     category: "efficient",
-    scores: { overall: 76, coding: 79, reasoning: 74, math: 78, general: 72 },
+    scores: { coding: 79, reasoning: 74, math: 78, general: 72 },
     providers: [
       { providerId: "azure", costPer1MInput: 0.07, costPer1MOutput: 0.14, blendedCost: 0.09, tokensPerSecond: 180 },
       { providerId: "together", costPer1MInput: 0.1, costPer1MOutput: 0.2, blendedCost: 0.13, tokensPerSecond: 200 },
@@ -251,7 +256,7 @@ export const models: Model[] = [
     name: "Llama 4 Scout",
     labId: "meta",
     category: "efficient",
-    scores: { overall: 79, coding: 77, reasoning: 78, math: 80, general: 81 },
+    scores: { coding: 77, reasoning: 78, math: 80, general: 81 },
     providers: [
       { providerId: "together", costPer1MInput: 0.15, costPer1MOutput: 0.4, blendedCost: 0.21, tokensPerSecond: 110 },
       { providerId: "fireworks", costPer1MInput: 0.18, costPer1MOutput: 0.45, blendedCost: 0.25, tokensPerSecond: 120 },
@@ -263,7 +268,7 @@ export const models: Model[] = [
     name: "Gemma 3 27B",
     labId: "google",
     category: "efficient",
-    scores: { overall: 74, coding: 72, reasoning: 73, math: 75, general: 76 },
+    scores: { coding: 72, reasoning: 73, math: 75, general: 76 },
     providers: [
       { providerId: "together", costPer1MInput: 0.1, costPer1MOutput: 0.2, blendedCost: 0.13, tokensPerSecond: 140 },
       { providerId: "fireworks", costPer1MInput: 0.12, costPer1MOutput: 0.22, blendedCost: 0.15, tokensPerSecond: 155 },
