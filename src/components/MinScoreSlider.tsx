@@ -17,6 +17,7 @@ interface MinScoreSliderProps {
   max?: number;
   empty?: boolean;
   label?: string;
+  unit?: string;
 }
 
 export default function MinScoreSlider({
@@ -26,6 +27,7 @@ export default function MinScoreSlider({
   max = 100,
   empty = false,
   label = "Minimum Intelligence",
+  unit,
 }: MinScoreSliderProps) {
   const [held, setHeld] = useState(false);
   const [moved, setMoved] = useState(false);
@@ -153,7 +155,7 @@ export default function MinScoreSlider({
             }}
           >
             <span className="text-sm font-semibold text-foreground tabular-nums">
-              {value}
+              {value}{unit ? ` ${unit}` : ""}
             </span>
           </div>
         </div>

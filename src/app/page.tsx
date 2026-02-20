@@ -13,6 +13,8 @@ const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 export default function Home() {
   const [minScore, setMinScore] = useState(70);
   const [minSpeedVal, setMinSpeedVal] = useState(0);
+  const [requireVision, setRequireVision] = useState(false);
+  const [requireOpenWeights, setRequireOpenWeights] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [closingModal, setClosingModal] = useState(false);
@@ -76,7 +78,11 @@ export default function Home() {
   }, [selectedModel]);
 
   const filtered = models.filter(
-    (m) => overallScore(m) >= minScore && bestSpeed(m) >= minSpeedVal
+    (m) =>
+      overallScore(m) >= minScore &&
+      bestSpeed(m) >= minSpeedVal &&
+      (!requireVision || m.supportsImages) &&
+      (!requireOpenWeights || m.openWeights)
   );
 
   const toggleSort = (col: string) => {
@@ -132,7 +138,7 @@ export default function Home() {
         onClick={() => setOptionsOpen(false)}
       >
         <div
-          className="rounded-3xl px-8 py-14"
+          className="rounded-3xl px-8 pt-14 pb-8"
           style={{
             background: "var(--card-bg)",
             opacity: optionsOpen ? 1 : 0,
@@ -145,9 +151,27 @@ export default function Home() {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-6" style={{ minHeight: 164 }}>
             <MinScoreSlider value={minScore} onChange={setMinScore} empty={filtered.length === 0} />
-            <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={200} empty={filtered.length === 0} label="Minimum Speed" />
+            <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={300} empty={filtered.length === 0} label="Minimum Best Speed" unit="tok/s" />
+            <div className="flex gap-3">
+              <FilterPill label={requireVision ? "Only Vision" : "Vision"} active={requireVision} color="magenta" onClick={() => setRequireVision((v) => !v)} icon={<EyeIcon />} />
+              <FilterPill label={requireOpenWeights ? "Only Open" : "Open Weights"} active={requireOpenWeights} color="green" onClick={() => setRequireOpenWeights((v) => !v)} icon={<UnlockedIcon />} />
+            </div>
+            <div
+              style={{
+                opacity: minScore !== 70 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? 1 : 0,
+                transition: `opacity 0.25s ${EASING}`,
+                pointerEvents: minScore !== 70 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? "auto" : "none",
+              }}
+            >
+              <button
+                onClick={() => { setMinScore(70); setMinSpeedVal(0); setRequireVision(false); setRequireOpenWeights(false); }}
+                className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-white transition-colors cursor-pointer h-[44px] px-6 rounded-full"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -162,12 +186,20 @@ export default function Home() {
           ref={buttonRef}
           onClick={() => setOptionsOpen((o) => !o)}
           className={`mt-4 text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
-            optionsOpen
-              ? "text-foreground"
-              : "text-foreground-tertiary hover:text-foreground-secondary"
+            (() => {
+              const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+              return count > 0
+                ? "text-accent"
+                : optionsOpen
+                  ? "text-foreground"
+                  : "text-foreground-tertiary hover:text-foreground-secondary";
+            })()
           }`}
         >
-          Options
+          {(() => {
+            const count = (minScore !== 70 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+            return count > 0 ? `${count} Option${count > 1 ? "s" : ""} Applied` : "Options";
+          })()}
         </button>
       </header>
 
@@ -206,14 +238,7 @@ export default function Home() {
                   style={isLast ? undefined : { borderBottom: "1px solid var(--card-border)" }}
                 >
                   <td className="py-3 pr-3 pl-4 font-medium text-foreground">
-                    <span className="flex items-center gap-1.5">
-                      {model.name}
-                      {model.openWeights && (
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden className="shrink-0">
-                          <circle cx="4" cy="4" r="4" fill="#61bb47" />
-                        </svg>
-                      )}
-                    </span>
+                    {model.name}
                   </td>
                   <td className="py-3 pr-3 text-foreground-secondary">
                     {formatMonthYear(model.releaseDate)}
@@ -238,7 +263,9 @@ export default function Home() {
       </Section>
 
       <footer className="text-center text-sm text-foreground-tertiary pb-12">
-        Made by <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 transition-colors">David</a> · Last updated February 20, 2026
+        Made by <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">David</a>
+        <br />
+        Last updated February 20, 2026
       </footer>
     </main>
 
@@ -311,5 +338,53 @@ function SortTh<T extends string>({ col, current, asc, onSort, align, children, 
     >
       {children}
     </th>
+  );
+}
+
+function FilterPill({ label, active, color, icon, onClick }: { label: string; active: boolean; color?: "green" | "magenta"; icon?: React.ReactNode; onClick: () => void }) {
+  const activeClasses = color === "green"
+    ? "bg-sys-green text-white"
+    : color === "magenta"
+      ? "bg-sys-pink text-white"
+      : "bg-foreground text-background";
+  return (
+    <button
+      onClick={onClick}
+      className={`text-sm font-medium cursor-pointer h-[44px] px-5 rounded-full transition-colors duration-200 flex items-center gap-1.5 ${
+        active
+          ? activeClasses
+          : "bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] text-foreground-secondary hover:text-foreground"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function EyeIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z" />
+      <circle cx="8" cy="8" r="2" />
+    </svg>
+  );
+}
+
+function LockedIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+    </svg>
+  );
+}
+
+function UnlockedIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="7.5" width="8" height="6" rx="1.5" />
+      <path d="M5.5 7.5V4.5a2.5 2.5 0 0 1 5 0v0" />
+    </svg>
   );
 }

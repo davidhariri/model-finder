@@ -38,6 +38,7 @@ export interface Model {
   supportsImages: boolean;
   openWeights: boolean;
   releaseDate: string; // ISO date string YYYY-MM-DD
+  releaseUrl?: string;
   scores: Scores;
   providers: ModelProvider[];
 }
@@ -80,10 +81,10 @@ export function getLab(id: string): Lab | undefined {
   return labs.find((l) => l.id === id);
 }
 
-/** Format context window as human-readable string */
+/** Format token count as human-readable string */
 export function formatContext(tokens: number): string {
-  if (tokens >= 1_000_000) return `${tokens / 1_000_000}M`;
-  return `${tokens / 1_000}K`;
+  if (tokens >= 1_000_000) return `${Math.round(tokens / 1_000_000)}M`;
+  return `${Math.round(tokens / 1_000)}K`;
 }
 
 /** Format parameter count for display */
@@ -134,6 +135,7 @@ export const models: Model[] = [
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-05-22",
+    releaseUrl: "https://www.anthropic.com/news/claude-4",
     scores: { coding: 95, reasoning: 94, math: 90, general: 92 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 15, costPer1MOutput: 75, blendedCost: 30, tokensPerSecond: 40 },
@@ -151,6 +153,7 @@ export const models: Model[] = [
     supportsImages: true,
     openWeights: false,
     releaseDate: "2024-05-13",
+    releaseUrl: "https://openai.com/index/hello-gpt-4o/",
     scores: { coding: 89, reasoning: 91, math: 92, general: 90 },
     providers: [
       { providerId: "openai", costPer1MInput: 2.5, costPer1MOutput: 10, blendedCost: 4.38, tokensPerSecond: 85 },
@@ -167,6 +170,7 @@ export const models: Model[] = [
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-03-25",
+    releaseUrl: "https://blog.google/technology/google-deepmind/gemini-2-0-pro-available/",
     scores: { coding: 87, reasoning: 90, math: 91, general: 88 },
     providers: [
       { providerId: "google", costPer1MInput: 1.25, costPer1MOutput: 5, blendedCost: 2.19, tokensPerSecond: 70 },
@@ -183,6 +187,7 @@ export const models: Model[] = [
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-05-22",
+    releaseUrl: "https://www.anthropic.com/news/claude-4",
     scores: { coding: 91, reasoning: 87, math: 85, general: 88 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 3, costPer1MOutput: 15, blendedCost: 6, tokensPerSecond: 75 },

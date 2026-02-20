@@ -8,23 +8,26 @@
   --surface: #f5f5f7;
   --surface-elevated: #ffffff;
   --border: #d2d2d7;
-  --accent: #009ddc;
-  --accent-light: #009ddc;
-  --bar-fill-start: #009ddc;
-  --bar-fill-end: #009ddc;
-  --scatter-dot: #009ddc;
+  --accent: #007AFF;
+  --accent-light: #007AFF;
+  --bar-fill-start: #007AFF;
+  --bar-fill-end: #007AFF;
+  --scatter-dot: #007AFF;
   --card-bg: #ffffff;
   --card-border: #e8e8ed;
   --card-hover-border: #d2d2d7;
   --chart-bg: #fbfbfd;
   --tooltip-bg: #1d1d1f;
   --tooltip-fg: #f5f5f7;
-  --speed-bar-start: #61bb47;
-  --speed-bar-end: #61bb47;
-  --cost-bar-start: #f6821f;
-  --cost-bar-end: #f6821f;
-  --cost-bar-output-start: #f6821f;
-  --cost-bar-output-end: #f6821f;
+  --speed-bar-start: #FF9500;
+  --speed-bar-end: #FF9500;
+  --cost-bar-start: #AF52DE;
+  --cost-bar-end: #AF52DE;
+  --cost-bar-output-start: #AF52DE;
+  --cost-bar-output-end: #AF52DE;
+  --system-green: #34C759;
+  --system-red: #FF3B30;
+  --system-pink: #FF2D55;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,23 +39,26 @@
     --surface: #1c1c1e;
     --surface-elevated: #000000;
     --border: #38383a;
-    --accent: #009ddc;
-    --accent-light: #009ddc;
-    --bar-fill-start: #009ddc;
-    --bar-fill-end: #009ddc;
-    --scatter-dot: #009ddc;
+    --accent: #0A84FF;
+    --accent-light: #0A84FF;
+    --bar-fill-start: #0A84FF;
+    --bar-fill-end: #0A84FF;
+    --scatter-dot: #0A84FF;
     --card-bg: #1c1c1e;
     --card-border: #38383a;
     --card-hover-border: #48484a;
     --chart-bg: #1c1c1e;
     --tooltip-bg: #2c2c2e;
     --tooltip-fg: #f5f5f7;
-    --speed-bar-start: #61bb47;
-    --speed-bar-end: #61bb47;
-    --cost-bar-start: #f6821f;
-    --cost-bar-end: #fcb827;
-    --cost-bar-output-start: #e03a3e;
-    --cost-bar-output-end: #e03a3e;
+    --speed-bar-start: #FF9F0A;
+    --speed-bar-end: #FF9F0A;
+    --cost-bar-start: #BF5AF2;
+    --cost-bar-end: #BF5AF2;
+    --cost-bar-output-start: #BF5AF2;
+    --cost-bar-output-end: #BF5AF2;
+    --system-green: #30D158;
+    --system-red: #FF453A;
+    --system-pink: #FF375F;
   }
 }
 
@@ -70,6 +76,9 @@
   --color-card-border: var(--card-border);
   --color-card-hover-border: var(--card-hover-border);
   --color-chart-bg: var(--chart-bg);
+  --color-sys-green: var(--system-green);
+  --color-sys-red: var(--system-red);
+  --color-sys-pink: var(--system-pink);
 }
 
 body {
