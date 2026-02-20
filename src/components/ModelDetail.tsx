@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Model, bestCost, bestSpeed, formatContext, getLab, getProvider, overallScore } from "@/data/models";
+import { Model, bestCost, bestSpeed, formatContext, formatParams, getLab, getProvider, overallScore } from "@/data/models";
 import BrandIcon from "./BrandIcon";
 
 type Phase = "enter" | "open" | "closing";
@@ -250,9 +250,10 @@ export default function ModelDetail({
           {/* Model specs */}
           <table className="w-full text-[13px] mt-8 mb-8">
             <tbody>
+              <SpecRow label="Parameters" value={formatParams(model.parameters)} />
               <SpecRow label="Context Window" value={formatContext(model.contextWindow)} />
-              <SpecRow label="Inputs" value={model.supportsImages ? "Text, Image" : "Text"} />
-              <SpecRow label="Outputs" value="Text" />
+              <SpecRow label="Max Output" value={formatContext(model.maxOutputTokens)} />
+              <SpecRow label="Knowledge Cutoff" value={model.knowledgeCutoff} />
               <SpecRow label="Released" value={formatDate(model.releaseDate)} />
               <tr style={{ borderTop: "1px solid var(--card-border)" }}>
                 <td className="py-2.5 text-foreground-secondary">License</td>

@@ -32,6 +32,9 @@ export interface Model {
   name: string;
   labId: string;
   contextWindow: number; // max tokens
+  maxOutputTokens: number;
+  knowledgeCutoff: string;
+  parameters?: { total: number; active?: number }; // billions
   supportsImages: boolean;
   openWeights: boolean;
   releaseDate: string; // ISO date string YYYY-MM-DD
@@ -83,6 +86,13 @@ export function formatContext(tokens: number): string {
   return `${tokens / 1_000}K`;
 }
 
+/** Format parameter count for display */
+export function formatParams(params?: { total: number; active?: number }): string {
+  if (!params) return "Undisclosed";
+  if (params.active) return `${params.total}B (${params.active}B active)`;
+  return `${params.total}B`;
+}
+
 // --- Reference data ---
 
 export const labs: Lab[] = [
@@ -119,6 +129,8 @@ export const models: Model[] = [
     name: "Claude Opus 4",
     labId: "anthropic",
     contextWindow: 200_000,
+    maxOutputTokens: 32_000,
+    knowledgeCutoff: "Early 2025",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-05-22",
@@ -134,6 +146,8 @@ export const models: Model[] = [
     name: "GPT-4o",
     labId: "openai",
     contextWindow: 128_000,
+    maxOutputTokens: 16_384,
+    knowledgeCutoff: "October 2023",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2024-05-13",
@@ -148,6 +162,8 @@ export const models: Model[] = [
     name: "Gemini 2.0 Pro",
     labId: "google",
     contextWindow: 2_000_000,
+    maxOutputTokens: 8_192,
+    knowledgeCutoff: "Early 2025",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-03-25",
@@ -162,6 +178,8 @@ export const models: Model[] = [
     name: "Claude Sonnet 4",
     labId: "anthropic",
     contextWindow: 200_000,
+    maxOutputTokens: 16_000,
+    knowledgeCutoff: "Early 2025",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-05-22",
@@ -177,6 +195,9 @@ export const models: Model[] = [
     name: "DeepSeek V3",
     labId: "deepseek",
     contextWindow: 128_000,
+    maxOutputTokens: 8_192,
+    knowledgeCutoff: "2024",
+    parameters: { total: 671, active: 37 },
     supportsImages: false,
     openWeights: true,
     releaseDate: "2024-12-26",
@@ -192,6 +213,9 @@ export const models: Model[] = [
     name: "Llama 4 Maverick",
     labId: "meta",
     contextWindow: 1_000_000,
+    maxOutputTokens: 16_384,
+    knowledgeCutoff: "Early 2025",
+    parameters: { total: 400, active: 17 },
     supportsImages: true,
     openWeights: true,
     releaseDate: "2025-04-05",
@@ -207,6 +231,8 @@ export const models: Model[] = [
     name: "GPT-4o Mini",
     labId: "openai",
     contextWindow: 128_000,
+    maxOutputTokens: 16_384,
+    knowledgeCutoff: "October 2023",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2024-07-18",
@@ -221,6 +247,8 @@ export const models: Model[] = [
     name: "Gemini 2.0 Flash",
     labId: "google",
     contextWindow: 1_000_000,
+    maxOutputTokens: 8_192,
+    knowledgeCutoff: "Early 2025",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-02-05",
@@ -235,6 +263,8 @@ export const models: Model[] = [
     name: "Claude Haiku 4",
     labId: "anthropic",
     contextWindow: 200_000,
+    maxOutputTokens: 8_192,
+    knowledgeCutoff: "Early 2025",
     supportsImages: true,
     openWeights: false,
     releaseDate: "2025-05-22",
@@ -249,6 +279,9 @@ export const models: Model[] = [
     name: "Qwen 3 72B",
     labId: "alibaba",
     contextWindow: 128_000,
+    maxOutputTokens: 32_768,
+    knowledgeCutoff: "Late 2024",
+    parameters: { total: 72 },
     supportsImages: false,
     openWeights: true,
     releaseDate: "2025-04-29",
@@ -263,6 +296,9 @@ export const models: Model[] = [
     name: "Mistral Large 2",
     labId: "mistral",
     contextWindow: 128_000,
+    maxOutputTokens: 8_192,
+    knowledgeCutoff: "Mid 2024",
+    parameters: { total: 123 },
     supportsImages: true,
     openWeights: true,
     releaseDate: "2024-07-24",
@@ -278,6 +314,9 @@ export const models: Model[] = [
     name: "Command R+",
     labId: "cohere",
     contextWindow: 128_000,
+    maxOutputTokens: 4_096,
+    knowledgeCutoff: "Early 2024",
+    parameters: { total: 104 },
     supportsImages: false,
     openWeights: true,
     releaseDate: "2024-04-04",
@@ -292,6 +331,9 @@ export const models: Model[] = [
     name: "Phi-4",
     labId: "microsoft",
     contextWindow: 16_000,
+    maxOutputTokens: 16_384,
+    knowledgeCutoff: "Late 2024",
+    parameters: { total: 14 },
     supportsImages: false,
     openWeights: true,
     releaseDate: "2024-12-12",
@@ -306,6 +348,9 @@ export const models: Model[] = [
     name: "Llama 4 Scout",
     labId: "meta",
     contextWindow: 10_000_000,
+    maxOutputTokens: 16_384,
+    knowledgeCutoff: "Early 2025",
+    parameters: { total: 109, active: 17 },
     supportsImages: true,
     openWeights: true,
     releaseDate: "2025-04-05",
@@ -321,6 +366,9 @@ export const models: Model[] = [
     name: "Gemma 3 27B",
     labId: "google",
     contextWindow: 128_000,
+    maxOutputTokens: 8_192,
+    knowledgeCutoff: "Early 2025",
+    parameters: { total: 27 },
     supportsImages: true,
     openWeights: true,
     releaseDate: "2025-03-12",

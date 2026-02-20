@@ -211,7 +211,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick }: ChartProps
           })}
           <Text
             x={width / 2 - margin.left}
-            y={innerHeight + 28}
+            y={innerHeight - 4}
             textAnchor="middle"
             fill="var(--foreground-secondary)"
             fontSize={12}
