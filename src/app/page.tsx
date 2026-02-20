@@ -22,6 +22,7 @@ export default function Home() {
   const [sortCol, setSortCol] = useState<"model" | "creator" | "score" | "cost" | "speed" | "released" | null>("score");
   const [sortAsc, setSortAsc] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const aboutPanelRef = useRef<HTMLDivElement>(null);
@@ -309,7 +310,7 @@ export default function Home() {
           All Models
         </h2>
         <div className="flex justify-center mb-6">
-          <div className="relative">
+          <div className="relative" style={{ transition: "opacity 0.3s ease" }}>
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-tertiary pointer-events-none" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="7" cy="7" r="4.5" />
               <path d="M10.5 10.5L14 14" />
@@ -318,9 +319,22 @@ export default function Home() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               placeholder="Search"
-              className="text-sm text-foreground bg-transparent border border-[var(--card-border)] rounded-full pl-9 pr-4 py-2 outline-none transition-all duration-300 w-48 focus:w-72 placeholder:text-foreground-tertiary focus:border-[var(--foreground-tertiary)]"
+              className={`text-sm text-foreground bg-transparent border border-[var(--card-border)] rounded-full pl-9 ${searchQuery ? "pr-8" : "pr-4"} py-2 outline-none transition-all duration-300 w-48 focus:w-72 placeholder:text-foreground-tertiary focus:border-[var(--foreground-tertiary)]`}
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-tertiary hover:text-foreground cursor-pointer"
+                style={{ opacity: searchFocused ? 0 : 1, pointerEvents: searchFocused ? "none" : "auto", transition: "opacity 0.2s ease" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
         <table className="w-full text-[13px]">
