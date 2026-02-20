@@ -16,6 +16,7 @@ interface MinScoreSliderProps {
   min?: number;
   max?: number;
   empty?: boolean;
+  label?: string;
 }
 
 export default function MinScoreSlider({
@@ -24,6 +25,7 @@ export default function MinScoreSlider({
   min = 0,
   max = 100,
   empty = false,
+  label = "Minimum Intelligence",
 }: MinScoreSliderProps) {
   const [held, setHeld] = useState(false);
   const [moved, setMoved] = useState(false);
@@ -72,8 +74,13 @@ export default function MinScoreSlider({
         }}
       >
         {/* Tick marks — visible when active */}
-        {Array.from({ length: 9 }, (_, i) => {
-          const v = (i + 1) * 10;
+        {(() => {
+          const range = max - min;
+          const step = range <= 50 ? 5 : range <= 100 ? 10 : range <= 200 ? 25 : 50;
+          const ticks: number[] = [];
+          for (let v = min + step; v < max; v += step) ticks.push(v);
+          return ticks;
+        })().map((v, i) => {
           const r = (v - min) / (max - min);
           const x = PAD + r * THUMB_RANGE + THUMB_SIZE / 2;
           return (
@@ -111,9 +118,9 @@ export default function MinScoreSlider({
               width: THUMB_SIZE,
               height: THUMB_SIZE,
               borderRadius: THUMB_SIZE / 2,
-              background: "white",
+              background: "var(--surface-elevated)",
               transform: held ? "scale(1.15)" : "scale(1)",
-              transition: `transform 0.4s ${SPRING}`,
+              transition: `transform 0.4s ${SPRING}, background 0.15s ease`,
             }}
           >
             {/* Value inside circle */}
@@ -161,7 +168,7 @@ export default function MinScoreSlider({
           transition: `transform 0.4s ${SPRING}, color 0.3s ease`,
         }}
       >
-        {empty ? "No Possible Models" : "Minimum Intelligence"}
+        {empty ? "No Possible Models" : label}
       </span>
     </div>
   );

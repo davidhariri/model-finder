@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { scaleLinear, scaleLog } from "@visx/scale";
 import { Group } from "@visx/group";
 import { Text } from "@visx/text";
@@ -286,8 +286,38 @@ function Chart({ models, width, height, mode }: ChartProps) {
   );
 }
 
+const MODES: ScatterMode[] = ["cost", "speed"];
+const MODE_LABELS: Record<ScatterMode, string> = { cost: "Cost", speed: "Speed" };
+const ITEM_HEIGHT = 36; // px — matches text-2xl line height
+
 export default function CostPerformanceScatter({ models }: ScatterProps) {
   const [mode, setMode] = useState<ScatterMode>("cost");
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [skipTransition, setSkipTransition] = useState(false);
+  const resetting = useRef(false);
+
+  const advance = useCallback(() => {
+    if (resetting.current) return;
+    const nextIdx = carouselIdx + 1;
+    const nextMode = MODES[nextIdx % MODES.length];
+    setCarouselIdx(nextIdx);
+    setMode(nextMode);
+
+    // When we reach the duplicate at position 2, silently reset to 0
+    if (nextIdx % MODES.length === 0) {
+      resetting.current = true;
+      setTimeout(() => {
+        setSkipTransition(true);
+        setCarouselIdx(0);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setSkipTransition(false);
+            resetting.current = false;
+          });
+        });
+      }, 400); // match transition duration
+    }
+  }, [carouselIdx]);
 
   return (
     <div>
@@ -298,28 +328,29 @@ export default function CostPerformanceScatter({ models }: ScatterProps) {
         <span className="text-2xl font-semibold tracking-tight text-foreground-tertiary mx-4">
           by
         </span>
-        <div className="flex gap-6">
-          <button
-            onClick={() => setMode("cost")}
-            className={`text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
-              mode === "cost"
-                ? "text-foreground"
-                : "text-foreground-tertiary hover:text-foreground-secondary"
-            }`}
+        <button
+          onClick={advance}
+          className="relative cursor-pointer overflow-hidden text-left"
+          style={{ height: ITEM_HEIGHT }}
+        >
+          <div
+            style={{
+              transform: `translateY(${-carouselIdx * ITEM_HEIGHT}px)`,
+              transition: skipTransition ? "none" : `transform 0.4s ${EASING}`,
+            }}
           >
-            Cost
-          </button>
-          <button
-            onClick={() => setMode("speed")}
-            className={`text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
-              mode === "speed"
-                ? "text-foreground"
-                : "text-foreground-tertiary hover:text-foreground-secondary"
-            }`}
-          >
-            Speed
-          </button>
-        </div>
+            {/* Render enough items for seamless looping: current cycle + one extra */}
+            {[...MODES, MODES[0]].map((m, i) => (
+              <div
+                key={i}
+                className="text-2xl font-semibold tracking-tight text-foreground"
+                style={{ height: ITEM_HEIGHT, lineHeight: `${ITEM_HEIGHT}px` }}
+              >
+                {MODE_LABELS[m]}
+              </div>
+            ))}
+          </div>
+        </button>
       </div>
       <ParentSize>
         {({ width }) =>

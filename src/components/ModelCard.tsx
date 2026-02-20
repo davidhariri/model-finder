@@ -10,7 +10,7 @@ export default function ModelCard({ model }: ModelCardProps) {
   const speed = bestSpeed(model);
 
   return (
-    <div className="group rounded-2xl border border-card-border bg-card-bg p-5 transition-all duration-200 hover:border-card-hover-border hover:shadow-lg">
+    <div className="group rounded-2xl p-5 transition-colors duration-200 hover:bg-surface cursor-pointer">
       <div className="min-w-0">
         <h3 className="text-[15px] font-semibold leading-tight text-foreground truncate">
           {model.name}

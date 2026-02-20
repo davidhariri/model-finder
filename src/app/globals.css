@@ -30,7 +30,7 @@
     --foreground-secondary: #a1a1a6;
     --foreground-tertiary: #6e6e73;
     --surface: #1c1c1e;
-    --surface-elevated: #2c2c2e;
+    --surface-elevated: #000000;
     --border: #38383a;
     --accent: #2997ff;
     --accent-light: #64d2ff;
@@ -41,8 +41,8 @@
     --card-border: #38383a;
     --card-hover-border: #48484a;
     --chart-bg: #1c1c1e;
-    --tooltip-bg: #f5f5f7;
-    --tooltip-fg: #1d1d1f;
+    --tooltip-bg: #2c2c2e;
+    --tooltip-fg: #f5f5f7;
     --speed-bar-start: #30d158;
     --speed-bar-end: #34c759;
   }
