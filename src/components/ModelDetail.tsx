@@ -27,9 +27,6 @@ export default function ModelDetail({
   const [selectedTile, setSelectedTile] = useState<Tile>("intelligence");
   const [tileTransitioning, setTileTransitioning] = useState(false);
   const [tileSlideDir, setTileSlideDir] = useState<"left" | "right">("right");
-  const [infoTab, setInfoTab] = useState<"details" | "providers">("providers");
-  const [infoTransitioning, setInfoTransitioning] = useState(false);
-  const [infoSlideDir, setInfoSlideDir] = useState<"left" | "right">("right");
   const [provSortCol, setProvSortCol] = useState<"provider" | "input" | "output" | "blended" | "speed" | null>("blended");
   const [provSortAsc, setProvSortAsc] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -50,23 +47,6 @@ export default function ModelDetail({
       }, 200);
     },
     [selectedTile]
-  );
-
-  const switchInfoTab = useCallback(
-    (next: "details" | "providers") => {
-      if (next === infoTab) return;
-      const dir = next === "details" ? "right" : "left";
-      setInfoSlideDir(dir);
-      setInfoTransitioning(true);
-      setTimeout(() => {
-        setInfoTab(next);
-        setInfoSlideDir(dir === "right" ? "left" : "right");
-        requestAnimationFrame(() => {
-          setInfoTransitioning(false);
-        });
-      }, 200);
-    },
-    [infoTab]
   );
 
   // Enter -> open on next frame
@@ -311,135 +291,108 @@ export default function ModelDetail({
           </div>
           </div>
 
-          {/* Details / Providers tabs */}
-          <div className="flex gap-4 mt-8 mb-4">
-            <button
-              onClick={() => switchInfoTab("providers")}
-              className={`text-lg font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
-                infoTab === "providers" ? "text-foreground" : "text-foreground-tertiary hover:text-foreground-secondary"
-              }`}
-            >
-              Providers
-            </button>
-            <button
-              onClick={() => switchInfoTab("details")}
-              className={`text-lg font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
-                infoTab === "details" ? "text-foreground" : "text-foreground-tertiary hover:text-foreground-secondary"
-              }`}
-            >
-              Details
-            </button>
-          </div>
-          <div
-            style={{
-              transform: infoTransitioning
-                ? infoSlideDir === "right" ? "translateX(24px)" : "translateX(-24px)"
-                : "translateX(0)",
-              opacity: infoTransitioning ? 0 : 1,
-              transition: `transform 0.35s ${EASING}, opacity 0.2s ease`,
-            }}
-          >
-            {infoTab === "details" ? (
-              <table className="w-full text-[13px]">
-                <tbody>
-                  <SpecRow label="Parameters" value={formatParams(model.parameters)} />
-                  <SpecRow label="Context Window" value={formatContext(model.contextWindow)} />
-                  <SpecRow label="Max Output" value={formatContext(model.maxOutputTokens)} />
-                  <SpecRow label="Knowledge Cutoff" value={model.knowledgeCutoff} />
-                  <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                    <td className="py-2.5 text-foreground-secondary">Released</td>
-                    <td className="py-2.5 text-right font-medium text-foreground">
-                      {model.releaseUrl ? (
-                        <a href={model.releaseUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors" onClick={(e) => e.stopPropagation()}>
-                          {formatDate(model.releaseDate)}
-                        </a>
-                      ) : formatDate(model.releaseDate)}
-                    </td>
-                  </tr>
-                  <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                    <td className="py-2.5 text-foreground-secondary">Thinking</td>
-                    <td className={`py-2.5 text-right font-medium ${model.thinking ? "text-sys-blue" : "text-foreground"}`}>
-                      <span className="inline-flex items-center gap-1.5 justify-end">
-                        {model.thinking
-                          ? model.thinking.type === "controllable"
-                            ? `Controllable${model.thinking.budgetRange ? ` (${model.thinking.budgetRange})` : ""}`
-                            : "Always On"
-                          : "No"}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                    <td className="py-2.5 text-foreground-secondary">Vision</td>
-                    <td className={`py-2.5 text-right font-medium ${model.supportsImages ? "text-sys-pink" : "text-foreground"}`}>
-                      <span className="inline-flex items-center gap-1.5 justify-end">
-                        {model.supportsImages ? <EyeIcon size={14} /> : <EyeOffIcon size={14} />}
-                        {model.supportsImages ? "Yes" : "No"}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                    <td className="py-2.5 text-foreground-secondary">License</td>
-                    <td className={`py-2.5 text-right font-medium ${model.openWeights ? "text-sys-green" : "text-foreground"}`}>
-                      <span className="inline-flex items-center gap-1.5 justify-end">
-                        {model.openWeights ? <UnlockedIcon size={14} /> : <LockedIcon size={14} />}
-                        {model.openWeights ? "Open Weights" : "Closed Weights"}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            ) : (
-              <table className="w-full text-[13px]">
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                    <SortTh col="provider" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="left">Provider</SortTh>
-                    <SortTh col="input" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Input</SortTh>
-                    <SortTh col="output" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Output</SortTh>
-                    <SortTh col="blended" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Blended</SortTh>
-                    <SortTh col="speed" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Speed</SortTh>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedProviders.map((p, i) => {
-                    const provider = getProvider(p.providerId);
-                    const isLast = i === sortedProviders.length - 1;
-                    return (
-                      <tr
-                        key={p.providerId}
-                        style={isLast ? undefined : { borderBottom: "1px solid var(--card-border)" }}
+          {/* Providers */}
+          <h3 className="text-lg font-semibold tracking-tight text-foreground mt-8 mb-4">Providers</h3>
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                <SortTh col="provider" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="left">Provider</SortTh>
+                <SortTh col="input" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Input</SortTh>
+                <SortTh col="output" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Output</SortTh>
+                <SortTh col="blended" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Blended</SortTh>
+                <SortTh col="speed" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Speed</SortTh>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedProviders.map((p, i) => {
+                const provider = getProvider(p.providerId);
+                const isLast = i === sortedProviders.length - 1;
+                return (
+                  <tr
+                    key={p.providerId}
+                    style={isLast ? undefined : { borderBottom: "1px solid var(--card-border)" }}
+                  >
+                    <td className="py-3 pr-3">
+                      <a
+                        href={provider?.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 font-medium text-foreground hover:text-accent transition-colors"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <td className="py-3 pr-3">
-                          <a
-                            href={provider?.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 font-medium text-foreground hover:text-accent transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <BrandIcon id={p.providerId} size={14} className="shrink-0" />
-                            {provider?.name}
-                          </a>
-                        </td>
-                        <td className="py-3 text-right font-medium">
-                          ${fmtCost(p.costPer1MInput)}
-                        </td>
-                        <td className="py-3 text-right font-medium">
-                          ${fmtCost(p.costPer1MOutput)}
-                        </td>
-                        <td className="py-3 text-right font-medium">
-                          ${fmtCost(blendedCost(p))}
-                        </td>
-                        <td className="py-3 text-right font-medium">
-                          {p.tokensPerSecond}
-                          <span className="text-[12px] font-normal text-foreground-tertiary ml-0.5">tok/s</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+                        <BrandIcon id={p.providerId} size={14} className="shrink-0" />
+                        {provider?.name}
+                      </a>
+                    </td>
+                    <td className="py-3 text-right font-medium">
+                      ${fmtCost(p.costPer1MInput)}
+                    </td>
+                    <td className="py-3 text-right font-medium">
+                      ${fmtCost(p.costPer1MOutput)}
+                    </td>
+                    <td className="py-3 text-right font-medium">
+                      ${fmtCost(blendedCost(p))}
+                    </td>
+                    <td className="py-3 text-right font-medium">
+                      {p.tokensPerSecond}
+                      <span className="text-[12px] font-normal text-foreground-tertiary ml-0.5">tok/s</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Details */}
+          <h3 className="text-lg font-semibold tracking-tight text-foreground mt-8 mb-4">Details</h3>
+          <table className="w-full text-[13px]">
+            <tbody>
+              <SpecRow label="Parameters" value={formatParams(model.parameters)} />
+              <SpecRow label="Context Window" value={formatContext(model.contextWindow)} />
+              <SpecRow label="Max Output" value={formatContext(model.maxOutputTokens)} />
+              <SpecRow label="Knowledge Cutoff" value={model.knowledgeCutoff} />
+              <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                <td className="py-2.5 text-foreground-secondary">Released</td>
+                <td className="py-2.5 text-right font-medium text-foreground">
+                  {model.releaseUrl ? (
+                    <a href={model.releaseUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors" onClick={(e) => e.stopPropagation()}>
+                      {formatDate(model.releaseDate)}
+                    </a>
+                  ) : formatDate(model.releaseDate)}
+                </td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                <td className="py-2.5 text-foreground-secondary">Thinking</td>
+                <td className={`py-2.5 text-right font-medium ${model.thinking ? "text-sys-blue" : "text-foreground"}`}>
+                  <span className="inline-flex items-center gap-1.5 justify-end">
+                    {model.thinking
+                      ? model.thinking.type === "controllable"
+                        ? `Controllable${model.thinking.budgetRange ? ` (${model.thinking.budgetRange})` : ""}`
+                        : "Always On"
+                      : "No"}
+                  </span>
+                </td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                <td className="py-2.5 text-foreground-secondary">Vision</td>
+                <td className={`py-2.5 text-right font-medium ${model.supportsImages ? "text-sys-pink" : "text-foreground"}`}>
+                  <span className="inline-flex items-center gap-1.5 justify-end">
+                    {model.supportsImages ? <EyeIcon size={14} /> : <EyeOffIcon size={14} />}
+                    {model.supportsImages ? "Yes" : "No"}
+                  </span>
+                </td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                <td className="py-2.5 text-foreground-secondary">License</td>
+                <td className={`py-2.5 text-right font-medium ${model.openWeights ? "text-sys-green" : "text-foreground"}`}>
+                  <span className="inline-flex items-center gap-1.5 justify-end">
+                    {model.openWeights ? <UnlockedIcon size={14} /> : <LockedIcon size={14} />}
+                    {model.openWeights ? "Open Weights" : "Closed Weights"}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <div className="mt-8 text-center">
             <a
               href="https://github.com/davidhariri/model-finder/issues"

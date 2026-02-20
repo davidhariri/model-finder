@@ -207,7 +207,7 @@ export default function Home() {
         onClick={() => setAboutOpen(false)}
       >
         <div
-          className="rounded-3xl px-8 py-10 max-w-[420px] text-center"
+          className="rounded-3xl px-8 py-10 max-w-[480px]"
           style={{
             background: "var(--card-bg)",
             opacity: aboutOpen ? 1 : 0,
@@ -220,14 +220,37 @@ export default function Home() {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="space-y-4 text-sm text-foreground-secondary leading-relaxed">
+          <div className="space-y-4 text-sm text-foreground-secondary leading-relaxed text-left">
             <p>
-              <span className="font-semibold text-foreground mb-1 block">Methodology</span>
-              Intelligence scores are averaged from coding (<a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-Bench Verified</a>), reasoning (<a href="https://huggingface.co/datasets/Idavidrein/gpqa" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">GPQA Diamond</a>), math (<a href="https://artofproblemsolving.com/wiki/index.php/2025_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2025</a>), and general knowledge (<a href="https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMLU-Pro</a>) benchmarks. Speed and cost reflect best available provider pricing.
+              <span className="font-semibold text-foreground mb-1 block">Intelligence Score</span>
+              Each benchmark is normalized to 0–1 using fixed goalposts (random-chance floor to near-mastery ceiling), then averaged equally and scaled to 0–100. Benchmarks included in the composite:
+            </p>
+            <table className="w-full text-[13px]">
+              <tbody>
+                <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                  <td className="py-2.5 text-foreground font-medium">Coding</td>
+                  <td className="py-2.5 text-right"><a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-Bench Verified</a>, <a href="https://livecodebench.github.io" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">LiveCodeBench</a></td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                  <td className="py-2.5 text-foreground font-medium">Reasoning</td>
+                  <td className="py-2.5 text-right"><a href="https://huggingface.co/datasets/Idavidrein/gpqa" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">GPQA Diamond</a>, <a href="https://agi.safe.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">HLE</a></td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                  <td className="py-2.5 text-foreground font-medium">Math</td>
+                  <td className="py-2.5 text-right"><a href="https://artofproblemsolving.com/wiki/index.php/2025_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2025</a></td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                  <td className="py-2.5 text-foreground font-medium">General</td>
+                  <td className="py-2.5 text-right"><a href="https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMLU-Pro</a></td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              Not all models have all benchmarks — the score averages whichever are available. <a href="https://mmmu-benchmark.github.io" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMMU-Pro</a> (multimodal) and <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena Elo</a> are shown in model details but excluded from the composite. Speed and cost reflect best available provider.
             </p>
             <p>
               <span className="font-semibold text-foreground mb-1 block">Sources</span>
-              <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Artificial Analysis</a>, <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena</a>, and provider documentation.
+              <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Artificial Analysis</a>, <a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-bench</a>, <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena</a>, and provider documentation.
             </p>
             <p>
               <span className="font-semibold text-foreground mb-1 block">Built with</span>
@@ -237,18 +260,10 @@ export default function Home() {
               <span className="font-semibold text-foreground mb-1 block">Created by</span>
               <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline decoration-foreground/20"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>@davidhariri</a>
             </p>
-            <div className="pt-2">
-              <a
-                href="https://github.com/davidhariri/model-finder/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-[var(--card-bg)] transition-colors cursor-pointer h-[44px] px-6 rounded-full inline-flex items-center"
-              >
-                Report an Issue
-              </a>
-            </div>
-            <p className="text-foreground-tertiary pt-1">
+            <p className="text-foreground-tertiary pt-2">
               Last updated February 20, 2026
+              <span className="mx-1.5">&middot;</span>
+              <a href="https://github.com/davidhariri/model-finder/issues" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20 hover:text-foreground-secondary transition-colors">Report an issue</a>
             </p>
           </div>
         </div>
