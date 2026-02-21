@@ -182,15 +182,15 @@ export default function ModelDetail({
       >
         {/* Sticky header */}
         <div
-          className="sticky top-0 z-10 px-6 pt-8 pb-10"
+          className="sticky top-0 z-10 px-6 pt-8 pb-14"
           style={{
-            background: "linear-gradient(to bottom, var(--card-bg) 40%, color-mix(in srgb, var(--card-bg) 50%, transparent) 75%, transparent)",
+            background: "linear-gradient(to bottom, var(--card-bg) 50%, color-mix(in srgb, var(--card-bg) 50%, transparent) 80%, transparent)",
             borderRadius: "32px 32px 0 0",
           }}
         >
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground">{model.name}</h2>
+              <h2 className="text-4xl font-semibold tracking-tight text-foreground mb-4">{model.name}</h2>
               <p className="text-[15px] text-foreground-secondary flex items-center gap-1.5 mt-1">
                 Created by
                 <a
