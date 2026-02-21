@@ -15,9 +15,54 @@ interface MinScoreSliderProps {
   onChange: (v: number) => void;
   min?: number;
   max?: number;
+  step?: number;
   empty?: boolean;
   label?: string;
   unit?: string;
+  prefix?: string;
+  /** Power curve exponent for non-linear mapping (1 = linear, 2 = quadratic, etc.) */
+  curve?: number;
+}
+
+/** Format a number: drop trailing .0 but keep .5, .25, etc. */
+function fmt(v: number): string {
+  if (Number.isInteger(v)) return String(v);
+  // Show up to 2 decimal places, strip trailing zeros
+  return v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+/** Snap value to the nearest "nice" step based on magnitude, scaled to range */
+function niceSnap(raw: number, max: number): number {
+  if (raw <= 0) return 0;
+  if (raw >= max) return max;
+  // Scale thresholds relative to max
+  const pct = raw / max;
+  let s: number;
+  if (max <= 100) {
+    // Cost-like range (0-50): very fine steps near zero
+    if (raw < 0.5) s = 0.05;
+    else if (raw < 2) s = 0.25;
+    else if (raw < 5) s = 0.5;
+    else if (raw < 20) s = 1;
+    else s = 2;
+  } else {
+    // Speed-like range (0-3000): scale steps with magnitude
+    if (pct < 0.01) s = 5;
+    else if (pct < 0.05) s = 10;
+    else if (pct < 0.15) s = 25;
+    else if (pct < 0.4) s = 50;
+    else s = 100;
+  }
+  return Math.round(raw / s) * s;
+}
+
+/** Generate logarithmic-style tick values for a given max */
+function curveTicks(max: number, min: number): number[] {
+  if (max <= 100) {
+    return [0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40].filter((v) => v > min && v < max);
+  }
+  // Speed-like range
+  return [10, 25, 50, 100, 200, 500, 1000, 2000].filter((v) => v > min && v < max);
 }
 
 export default function MinScoreSlider({
@@ -25,9 +70,12 @@ export default function MinScoreSlider({
   onChange,
   min = 0,
   max = 100,
+  step = 1,
   empty = false,
   label = "Minimum Intelligence",
   unit,
+  prefix,
+  curve = 1,
 }: MinScoreSliderProps) {
   const [held, setHeld] = useState(false);
   const [moved, setMoved] = useState(false);
@@ -39,13 +87,18 @@ export default function MinScoreSlider({
       if (!rect) return value;
       const x = clientX - rect.left - PAD - THUMB_SIZE / 2;
       const r = Math.max(0, Math.min(1, x / THUMB_RANGE));
-      return Math.round(min + r * (max - min));
+      const curved = Math.pow(r, curve);
+      const raw = min + curved * (max - min);
+      if (curve > 1) return niceSnap(raw, max);
+      return Math.round(raw / step) * step;
     },
-    [min, max, value]
+    [min, max, step, curve, value]
   );
 
-  const ratio = (value - min) / (max - min);
+  const ratio = Math.pow(Math.max(0, (value - min) / (max - min)), 1 / curve);
   const thumbLeft = PAD + ratio * THUMB_RANGE;
+
+  const displayVal = curve > 1 ? fmt(value) : (step < 1 ? value.toFixed(1) : String(value));
 
   return (
     <div className="flex flex-col items-center">
@@ -77,13 +130,16 @@ export default function MinScoreSlider({
       >
         {/* Tick marks — visible when active */}
         {(() => {
+          if (curve > 1) {
+            return curveTicks(max, min);
+          }
           const range = max - min;
-          const step = range <= 50 ? 5 : range <= 100 ? 10 : range <= 200 ? 25 : 50;
+          const tickStep = range <= 20 ? 2 : range <= 50 ? 5 : range <= 100 ? 10 : range <= 200 ? 25 : 50;
           const ticks: number[] = [];
-          for (let v = min + step; v < max; v += step) ticks.push(v);
+          for (let v = min + tickStep; v < max; v += tickStep) ticks.push(v);
           return ticks;
         })().map((v, i) => {
-          const r = (v - min) / (max - min);
+          const r = Math.pow((v - min) / (max - min), 1 / curve);
           const x = PAD + r * THUMB_RANGE + THUMB_SIZE / 2;
           return (
             <div
@@ -137,7 +193,7 @@ export default function MinScoreSlider({
                   : `opacity 0.25s ease 0.15s, transform 0.3s ${EASING} 0.15s`,
               }}
             >
-              {value}
+              {displayVal}
             </span>
           </div>
 
@@ -155,7 +211,7 @@ export default function MinScoreSlider({
             }}
           >
             <span className="text-sm font-semibold text-foreground tabular-nums">
-              {value}{unit ? ` ${unit}` : ""}
+              {prefix ?? ""}{displayVal}{unit ? ` ${unit}` : ""}
             </span>
           </div>
         </div>

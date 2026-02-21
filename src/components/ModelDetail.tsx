@@ -350,7 +350,7 @@ export default function ModelDetail({
               <SpecRow label="Parameters" value={formatParams(model.parameters)} />
               <SpecRow label="Context Window" value={formatContext(model.contextWindow)} />
               <SpecRow label="Max Output" value={formatContext(model.maxOutputTokens)} />
-              <SpecRow label="Knowledge Cutoff" value={model.knowledgeCutoff} />
+              {model.knowledgeCutoff && <SpecRow label="Knowledge Cutoff" value={model.knowledgeCutoff} />}
               <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
                 <td className="py-2.5 text-foreground-secondary">Released</td>
                 <td className="py-2.5 text-right font-medium text-foreground">

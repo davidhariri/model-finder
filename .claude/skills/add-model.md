@@ -45,6 +45,7 @@ mcp__artificial-analysis__get_model({ model: "<slug>" })
 | `gpqa` | `reasoning` | GPQA Diamond (%) |
 | `hle` | `reasoningHle` | Humanity's Last Exam (%) |
 | `aime_25` | `math` | Set `mathBenchmark: "AIME 2025"` |
+| `aime_26` | `math` | Set `mathBenchmark: "AIME 2026"` (prefer over 2025 if available) |
 | `mmlu_pro` | `general` | MMLU-Pro (%) |
 | `livecodebench` | `codingLive` | LiveCodeBench (%) |
 | `tokens_per_second` | `tokensPerSecond` | Round to integer |
@@ -70,6 +71,8 @@ mcp__artificial-analysis__get_model({ model: "<slug>" })
 - Anthropic: 90% discount
 - Google: 75% discount
 
+**AIME 2026** — AA may not have `aime_26` yet. Search for `"<model>" AIME 2026 score`. Good sources: provider blog posts, matharena.ai (results appear in search snippets even though the site itself is dynamic). Prefer AIME 2026 over 2025 when both are available — it's newer and less susceptible to contamination. Maps to `math` field with `mathBenchmark: "AIME 2026"`.
+
 **MMMU-Pro** — rarely available. Search if needed, but don't spend more than 1-2 queries.
 
 ### 3. What does NOT work
@@ -89,13 +92,14 @@ interface Model {
   labId: string;           // Must match an entry in the labs array
   contextWindow: number;   // Max input tokens
   maxOutputTokens: number;
-  knowledgeCutoff: string; // "YYYY-MM" format
+  knowledgeCutoff?: string; // "YYYY-MM" format. Omit if not publicly disclosed.
   parameters?: { total: number; active?: number }; // Billions. Omit if undisclosed.
   supportsImages: boolean;
   thinking?: { type: "always" | "controllable"; budgetRange?: string };
   openWeights: boolean;
   releaseDate: string;     // "YYYY-MM-DD" format
   releaseUrl?: string;     // Blog post URL
+  expectingMoreBenchmarks?: boolean; // Set true if scores are incomplete (new models)
   scores: Scores;
   providers: ModelProvider[];
 }
@@ -107,24 +111,24 @@ interface Scores {
   reasoningHle?: number;   // Humanity's Last Exam (%)
   math?: number;           // AIME 2025 or 2026 (%)
   mathBenchmark?: "AIME 2025" | "AIME 2026"; // Required if math is set
-  general: number;         // MMLU-Pro (%) — REQUIRED
+  general?: number;        // MMLU-Pro (%). Omit if not available (very new models may lack it).
   multimodal?: number;     // MMMU-Pro (%)
   elo?: number;            // LMArena Elo rating
 }
 ```
 
-**Required fields:** `reasoning` (GPQA) and `general` (MMLU-Pro) are required. If you can't find MMLU-Pro for a model, skip it entirely and tell the user why.
+**Required fields:** `reasoning` (GPQA) is the only required score. If you can't find GPQA for a model, skip it entirely and tell the user why.
 
 **Optional fields:** Everything else. Leave `undefined` rather than guess.
 
 ## Workflow Per Model
 
 1. **Fetch AA data** — `mcp__artificial-analysis__get_model({ model: "<slug>" })`
-2. **Check what's missing** — typically SWE-Bench, context/output specs, cutoff, release info, Elo
+2. **Check what's missing** — typically SWE-Bench, AIME 2026, context/output specs, cutoff, release info, Elo
 3. **Web search for gaps** — max 2-3 searches per missing field, then give up
 4. **Compile the entry** — convert AA decimals to percentages, round to integers
 5. **Check labs/providers arrays** — if the model's lab or provider isn't in the arrays yet, add it
-6. **Write to models.ts** — append to the `models` array
+6. **Write to models.ts** — append to the `models` array. If any scores are missing that you'd expect to appear later (model is very new, AA data is sparse), set `expectingMoreBenchmarks: true`. The `/update-benchmarks` skill will sweep these later.
 7. **Type check** — `npx tsc --noEmit`
 8. **Report** — tell the user what was added and what data is missing/skipped
 

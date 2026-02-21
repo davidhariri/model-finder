@@ -13,6 +13,7 @@ const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 export default function Home() {
   const [minScore, setMinScore] = useState(0);
   const [minSpeedVal, setMinSpeedVal] = useState(0);
+  const [maxCostVal, setMaxCostVal] = useState(50);
   const [requireVision, setRequireVision] = useState(false);
   const [requireOpenWeights, setRequireOpenWeights] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -95,6 +96,7 @@ export default function Home() {
     (m) =>
       overallScore(m) >= minScore &&
       bestSpeed(m) >= minSpeedVal &&
+      (maxCostVal >= 50 || bestCost(m) <= maxCostVal) &&
       (!requireVision || m.supportsImages) &&
       (!requireOpenWeights || m.openWeights)
   );
@@ -174,20 +176,21 @@ export default function Home() {
         >
           <div className="flex flex-col items-center gap-6" style={{ minHeight: 164 }}>
             <MinScoreSlider value={minScore} onChange={setMinScore} empty={filtered.length === 0} />
-            <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={300} empty={filtered.length === 0} label="Minimum Best Speed" unit="tok/s" />
+            <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={3000} curve={2.5} empty={filtered.length === 0} label="Minimum Best Speed" unit="tok/s" />
+            <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={0} max={50} curve={2.5} empty={filtered.length === 0} label="Maximum Blended Cost" prefix="$" unit="/1M" />
             <div className="flex gap-3">
               <FilterPill label={requireVision ? "Only Vision" : "Vision"} active={requireVision} color="magenta" onClick={() => setRequireVision((v) => !v)} icon={<EyeIcon />} />
               <FilterPill label={requireOpenWeights ? "Only Open" : "Open Weights"} active={requireOpenWeights} color="green" onClick={() => setRequireOpenWeights((v) => !v)} icon={<UnlockedIcon />} />
             </div>
             <div
               style={{
-                opacity: minScore !== 0 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? 1 : 0,
+                opacity: minScore !== 0 || minSpeedVal !== 0 || maxCostVal < 50 || requireVision || requireOpenWeights ? 1 : 0,
                 transition: `opacity 0.25s ${EASING}`,
-                pointerEvents: minScore !== 0 || minSpeedVal !== 0 || requireVision || requireOpenWeights ? "auto" : "none",
+                pointerEvents: minScore !== 0 || minSpeedVal !== 0 || maxCostVal < 50 || requireVision || requireOpenWeights ? "auto" : "none",
               }}
             >
               <button
-                onClick={() => { setMinScore(0); setMinSpeedVal(0); setRequireVision(false); setRequireOpenWeights(false); }}
+                onClick={() => { setMinScore(0); setMinSpeedVal(0); setMaxCostVal(50); setRequireVision(false); setRequireOpenWeights(false); }}
                 className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-[var(--card-bg)] transition-colors cursor-pointer h-[44px] px-6 rounded-full"
               >
                 Reset
@@ -278,7 +281,7 @@ export default function Home() {
             onClick={() => { setOptionsOpen((o) => !o); setAboutOpen(false); }}
             className={`text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
               (() => {
-                const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+                const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (maxCostVal < 50 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
                 return count > 0
                   ? "text-accent"
                   : optionsOpen
@@ -288,7 +291,7 @@ export default function Home() {
             }`}
           >
             {(() => {
-              const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
+              const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (maxCostVal < 50 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
               return count > 0 ? `${count} Option${count > 1 ? "s" : ""} Applied` : "Options";
             })()}
           </button>
@@ -305,7 +308,7 @@ export default function Home() {
           </button>
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-          Cloud Model Finder
+          Model Browser
         </h1>
       </header>
 

@@ -1,4 +1,4 @@
-# Cloud Model Finder
+# David's Model Finder
 
 Interactive dashboard for comparing LLM models across intelligence, speed, and cost.
 

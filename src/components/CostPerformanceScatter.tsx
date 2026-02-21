@@ -9,14 +9,11 @@ import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
 import {
   Model,
+  ModelProvider,
   blendedCost,
-  costRange,
-  speedRange,
   getLab,
   getProvider,
   overallScore,
-  bestSpeed,
-  bestCost,
 } from "@/data/models";
 import BrandIcon from "@/components/BrandIcon";
 
@@ -34,10 +31,13 @@ interface ChartProps extends ScatterProps {
 
 type ScatterMode = "cost" | "speed";
 
-const SAUSAGE_HEIGHT = 16;
-const MIN_SAUSAGE_WIDTH = 16;
-const HIT_AREA_HEIGHT = 36;
-const HIT_AREA_PADDING = 8;
+interface TooltipPoint {
+  model: Model;
+  provider: ModelProvider;
+}
+
+const POINT_RADIUS = 7;
+const HIT_RADIUS = 14;
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 const DURATION = "0.6s";
 
@@ -53,7 +53,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
     tooltipOpen,
     showTooltip,
     hideTooltip,
-  } = useTooltip<Model>();
+  } = useTooltip<TooltipPoint>();
 
   // Hide tooltip when mode changes
   useEffect(() => {
@@ -62,15 +62,14 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
 
   const isCost = mode === "cost";
 
-  // Always compute both scales so we can transition between them
+  // Scales
   const costXScale = scaleLog({
     domain: [0.1, 50],
     range: [0, innerWidth],
   });
 
-  const allSpeeds = models.flatMap((m) => m.providers.map((p) => p.tokensPerSecond));
-  const speedXScale = scaleLinear({
-    domain: [0, Math.max(...allSpeeds) * 1.15],
+  const speedXScale = scaleLog({
+    domain: [10, 5000],
     range: [0, innerWidth],
   });
 
@@ -94,15 +93,14 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
     dy: 4,
   });
 
-  // Spread overlapping sausages apart based on actual pixel positions
+  // Spread overlapping models apart on Y axis
   const nudgeMap = new Map<string, number>();
   {
-    const MIN_GAP = SAUSAGE_HEIGHT + 4; // minimum px between sausage centers
+    const MIN_GAP = POINT_RADIUS * 2 + 4;
     const items = models
       .map((m) => ({ id: m.id, baseY: yScale(overallScore(m)) }))
       .sort((a, b) => a.baseY - b.baseY);
 
-    // Iteratively push overlapping items apart (centered around their group midpoint)
     const adjustedY = items.map((it) => it.baseY);
     for (let pass = 0; pass < 10; pass++) {
       let moved = false;
@@ -124,9 +122,35 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
     }
   }
 
+  // Flatten models into individual model+provider points
+  const points = models.flatMap((model) =>
+    model.providers.map((provider) => ({ model, provider }))
+  );
+
+  // Unique key for a point
+  const pointKey = (m: Model, p: ModelProvider) => `${m.id}::${p.providerId}`;
+  const hoveredKey = tooltipData ? pointKey(tooltipData.model, tooltipData.provider) : null;
+
+  // Layout all points
+  const layoutItems = points.map(({ model, provider }) => {
+    const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
+    const cx = isCost
+      ? costXScale(blendedCost(provider))
+      : speedXScale(provider.tokensPerSecond);
+    const key = pointKey(model, provider);
+    const isHovered = key === hoveredKey;
+    const isHighlighted = !tooltipOpen || isHovered;
+    return { model, provider, cx, cy, key, isHovered, isHighlighted };
+  }).sort((a, b) => {
+    // Hovered always on top
+    if (a.isHovered !== b.isHovered) return a.isHovered ? 1 : -1;
+    return 0;
+  });
+
+
   return (
     <div className="relative">
-      <svg width={width} height={height}>
+      <svg width={width} height={height} onMouseLeave={hideTooltip}>
         <defs>
           <linearGradient id="scatter-cost-grad" gradientUnits="userSpaceOnUse" x1={margin.left} x2={margin.left + innerWidth} y1="0" y2="0">
             <stop offset="0%" stopColor="var(--bar-fill-end)" />
@@ -146,7 +170,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
               tickValues={[0.1, 0.3, 1, 3, 10, 30, 50]}
               tickFormat={(v) => {
                 const n = Number(v);
-                return `$${n.toFixed(2)}`;
+                return `$${n < 1 ? n.toFixed(2) : n.toFixed(1)}`;
               }}
               stroke="var(--border)"
               tickStroke="var(--border)"
@@ -161,7 +185,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
             <AxisBottom
               top={innerHeight}
               scale={speedXScale}
-              numTicks={6}
+              tickValues={[10, 30, 100, 300, 1000, 3000]}
               tickFormat={(v) => `${Number(v)}`}
               stroke="var(--border)"
               tickStroke="var(--border)"
@@ -200,118 +224,89 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
               Benchmark Scores
             </tspan>
           </text>
-          {/* Precompute layout for both passes */}
-          {(() => {
-            const sorted = [...models].sort((a, b) => {
-              const aHovered = tooltipData?.id === a.id ? 1 : 0;
-              const bHovered = tooltipData?.id === b.id ? 1 : 0;
-              return aHovered - bHovered;
-            });
 
-            const layoutItems = sorted.map((model) => {
-              const [minCost, maxCost] = costRange(model);
-              const [minSpeed, maxSpeed] = speedRange(model);
-              const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
-              const x1 = isCost ? costXScale(minCost) : speedXScale(minSpeed);
-              const x2 = isCost ? costXScale(maxCost) : speedXScale(maxSpeed);
-              const rawWidth = x2 - x1;
-              const sausageWidth = Math.max(rawWidth, MIN_SAUSAGE_WIDTH);
-              const sausageX = rawWidth < MIN_SAUSAGE_WIDTH ? x1 - (MIN_SAUSAGE_WIDTH - rawWidth) / 2 : x1;
-              const isHighlighted = !tooltipOpen || tooltipData?.id === model.id;
-              const isHovered = tooltipData?.id === model.id;
-              const labelX = sausageX + sausageWidth / 2;
-              const labelY = cy - SAUSAGE_HEIGHT / 2 - 8;
-              return { model, cy, sausageX, sausageWidth, isHighlighted, isHovered, labelX, labelY };
-            });
+          {/* Pass 1: hit areas + points */}
+          {layoutItems.map(({ model, provider, cx, cy, key, isHighlighted }) => (
+            <g key={key}>
+              {/* Invisible larger hit area */}
+              <circle
+                cx={cx}
+                cy={cy}
+                r={HIT_RADIUS}
+                fill="transparent"
+                onMouseMove={(e) => {
+                  const svgRect = e.currentTarget.closest("svg")?.getBoundingClientRect();
+                  showTooltip({
+                    tooltipData: { model, provider },
+                    tooltipLeft: e.clientX - (svgRect?.left ?? 0),
+                    tooltipTop: e.clientY - (svgRect?.top ?? 0) + 16,
+                  });
+                }}
+                onMouseLeave={hideTooltip}
+                onClick={() => onModelClick?.(model)}
+                style={{
+                  cursor: "pointer",
+                  transition: `cx ${DURATION} ${EASING}`,
+                } as React.CSSProperties}
+              />
+              {/* Visible point */}
+              <circle
+                cx={cx}
+                cy={cy}
+                r={POINT_RADIUS}
+                fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
+                stroke="var(--border)"
+                strokeWidth={1}
+                pointerEvents="none"
+                style={{
+                  opacity: isHighlighted ? 1 : 0.3,
+                  transition: `cx ${DURATION} ${EASING}, opacity 0.2s ease`,
+                } as React.CSSProperties}
+              />
+            </g>
+          ))}
 
-            return (
-              <>
-                {/* Pass 1: hit areas + sausages */}
-                {layoutItems.map(({ model, cy, sausageX, sausageWidth, isHighlighted }) => (
-                  <g key={model.id}>
-                    <rect
-                      height={HIT_AREA_HEIGHT}
-                      rx={HIT_AREA_HEIGHT / 2}
-                      fill="transparent"
-                      onMouseMove={(e) => {
-                        const svgRect = e.currentTarget.closest("svg")?.getBoundingClientRect();
-                        showTooltip({
-                          tooltipData: model,
-                          tooltipLeft: e.clientX - (svgRect?.left ?? 0),
-                          tooltipTop: e.clientY - (svgRect?.top ?? 0) + 16,
-                        });
-                      }}
-                      onMouseLeave={hideTooltip}
-                      onClick={() => onModelClick?.(model)}
-                      style={{
-                        x: sausageX - HIT_AREA_PADDING,
-                        y: cy - HIT_AREA_HEIGHT / 2,
-                        width: sausageWidth + HIT_AREA_PADDING * 2,
-                        transition: `x ${DURATION} ${EASING}, width ${DURATION} ${EASING}`,
-                        cursor: "pointer",
-                      } as React.CSSProperties}
-                    />
-                    <rect
-                      height={SAUSAGE_HEIGHT}
-                      rx={SAUSAGE_HEIGHT / 2}
-                      fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
-                      stroke="var(--border)"
-                      strokeWidth={1}
-                      pointerEvents="none"
-                      style={{
-                        x: sausageX,
-                        y: cy - SAUSAGE_HEIGHT / 2,
-                        width: sausageWidth,
-                        opacity: isHighlighted ? 1 : 0.35,
-                        transition: `x ${DURATION} ${EASING}, width ${DURATION} ${EASING}, opacity 0.2s ease`,
-                      } as React.CSSProperties}
-                    />
-                  </g>
-                ))}
-                {/* Pass 2: labels on top of all sausages */}
-                {layoutItems.map(({ model, labelX, labelY, isHovered }) => (
-                  (!tooltipOpen || isHovered) && (
-                    <g
-                      key={`label-${model.id}`}
-                      style={{
-                        transform: `translate(${labelX}px, ${labelY}px)`,
-                        transition: `transform ${DURATION} ${EASING}`,
-                      }}
-                    >
-                      <Text
-                        x={0}
-                        y={0}
-                        textAnchor="middle"
-                        fill="var(--background)"
-                        fontSize={11}
-                        fontWeight={500}
-                        stroke="var(--background)"
-                        strokeWidth={4}
-                        paintOrder="stroke"
-                        style={{ transition: "opacity 0.2s ease" }}
-                      >
-                        {model.name}
-                      </Text>
-                      <Text
-                        x={0}
-                        y={0}
-                        textAnchor="middle"
-                        fill="var(--foreground-secondary)"
-                        fontSize={11}
-                        fontWeight={500}
-                        opacity={tooltipOpen ? 1 : 0.8}
-                        style={{ transition: "opacity 0.2s ease" }}
-                      >
-                        {model.name}
-                      </Text>
-                    </g>
-                  )
-                ))}
-              </>
-            );
-          })()}
+          {/* Pass 2: labels on top of all points */}
+          {layoutItems.map(({ model, cx, cy, key, isHighlighted }) => (
+            <g
+              key={`label-${key}`}
+              style={{
+                transform: `translate(${cx}px, ${cy - POINT_RADIUS - 6}px)`,
+                transition: `transform ${DURATION} ${EASING}`,
+              }}
+            >
+              <Text
+                x={0}
+                y={0}
+                textAnchor="middle"
+                fill="var(--background)"
+                fontSize={11}
+                fontWeight={500}
+                stroke="var(--background)"
+                strokeWidth={4}
+                paintOrder="stroke"
+                opacity={isHighlighted ? (tooltipOpen ? 1 : 0.8) : 0.3}
+                style={{ transition: "opacity 0.2s ease" }}
+              >
+                {model.name}
+              </Text>
+              <Text
+                x={0}
+                y={0}
+                textAnchor="middle"
+                fill="var(--foreground-secondary)"
+                fontSize={11}
+                fontWeight={500}
+                opacity={isHighlighted ? (tooltipOpen ? 1 : 0.8) : 0.3}
+                style={{ transition: "opacity 0.2s ease" }}
+              >
+                {model.name}
+              </Text>
+            </g>
+          ))}
         </Group>
       </svg>
+
       {tooltipOpen && tooltipData && (
         <TooltipWithBounds
           left={tooltipLeft}
@@ -320,25 +315,33 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
           applyPositionStyle
           className="bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)] px-4 py-3.5 rounded-2xl text-sm shadow-lg pointer-events-none z-50 min-w-[200px]"
         >
-          <div className="font-semibold">{tooltipData.name}</div>
+          <div className="font-semibold">{tooltipData.model.name}</div>
           <div className="flex items-center gap-1.5 opacity-70 text-xs mt-0.5">
-            <BrandIcon id={tooltipData.labId} size={12} />
-            {getLab(tooltipData.labId)?.name}
+            <BrandIcon id={tooltipData.model.labId} size={12} />
+            {getLab(tooltipData.model.labId)?.name}
           </div>
           <div className="mt-3 space-y-1.5 text-[13px]">
             <div className="flex justify-between gap-6">
+              <span className="opacity-60">Provider</span>
+              <span className="font-medium flex items-center gap-1.5">
+                <BrandIcon id={tooltipData.provider.providerId} size={12} />
+                {getProvider(tooltipData.provider.providerId)?.name}
+              </span>
+            </div>
+            <div className="border-t border-[var(--foreground)]/10" />
+            <div className="flex justify-between gap-6">
               <span className="opacity-60">Intelligence</span>
-              <span className="font-medium tabular-nums">{overallScore(tooltipData)}</span>
+              <span className="font-medium tabular-nums">{overallScore(tooltipData.model)}</span>
             </div>
             <div className="border-t border-[var(--foreground)]/10" />
             <div className="flex justify-between gap-6">
-              <span className="opacity-60">Best Speed</span>
-              <span className="font-medium tabular-nums">{bestSpeed(tooltipData)} <span className="opacity-50 font-normal">tok/s</span></span>
+              <span className="opacity-60">Speed</span>
+              <span className="font-medium tabular-nums">{tooltipData.provider.tokensPerSecond} <span className="opacity-50 font-normal">tok/s</span></span>
             </div>
             <div className="border-t border-[var(--foreground)]/10" />
             <div className="flex justify-between gap-6">
-              <span className="opacity-60">Lowest Blended Cost</span>
-              <span className="font-medium tabular-nums">${bestCost(tooltipData).toFixed(2)} <span className="opacity-50 font-normal">/1M</span></span>
+              <span className="opacity-60">Blended Cost</span>
+              <span className="font-medium tabular-nums">${blendedCost(tooltipData.provider).toFixed(2)} <span className="opacity-50 font-normal">/1M</span></span>
             </div>
           </div>
         </TooltipWithBounds>
@@ -349,7 +352,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
 
 const MODES: ScatterMode[] = ["cost", "speed"];
 const MODE_LABELS: Record<ScatterMode, string> = { cost: "Cost", speed: "Speed" };
-const ITEM_HEIGHT = 36; // px — matches text-2xl line height
+const ITEM_HEIGHT = 36;
 
 export default function CostPerformanceScatter({ models, onModelClick, onAboutClick }: ScatterProps) {
   const [mode, setMode] = useState<ScatterMode>("cost");
@@ -364,7 +367,6 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
     setCarouselIdx(nextIdx);
     setMode(nextMode);
 
-    // When we reach the duplicate at position 2, silently reset to 0
     if (nextIdx % MODES.length === 0) {
       resetting.current = true;
       setTimeout(() => {
@@ -376,7 +378,7 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
             resetting.current = false;
           });
         });
-      }, 400); // match transition duration
+      }, 400);
     }
   }, [carouselIdx]);
 
@@ -400,7 +402,6 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
               transition: skipTransition ? "none" : `transform 0.4s ${EASING}`,
             }}
           >
-            {/* Render enough items for seamless looping: current cycle + one extra */}
             {[...MODES, MODES[0]].map((m, i) => (
               <div
                 key={i}
