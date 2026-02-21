@@ -95,7 +95,7 @@ export default function ModelDetail({
           { label: "Reasoning (GPQA)", pct: model.scores.reasoning, display: model.scores.reasoning.toString() },
           ...(model.scores.reasoningHle != null ? [{ label: "Reasoning (HLE)", pct: model.scores.reasoningHle, display: model.scores.reasoningHle.toString() }] : []),
           ...(model.scores.math != null ? [{ label: `Math (${model.scores.mathBenchmark})`, pct: model.scores.math, display: model.scores.math.toString() }] : []),
-          { label: "General (MMLU-Pro)", pct: model.scores.general, display: model.scores.general.toString() },
+          ...(model.scores.general != null ? [{ label: "General (MMLU-Pro)", pct: model.scores.general, display: model.scores.general.toString() }] : []),
           ...(model.scores.multimodal != null ? [{ label: "Multimodal (MMMU-Pro)", pct: model.scores.multimodal, display: model.scores.multimodal.toString() }] : []),
           ...(model.scores.elo != null ? [{ label: "Human Pref (Elo)", pct: Math.min(100, ((model.scores.elo - 800) / 600) * 100), display: model.scores.elo.toString() }] : []),
         ]

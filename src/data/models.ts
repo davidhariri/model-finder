@@ -32,7 +32,7 @@ export interface Scores {
   reasoningHle?: number; // Humanity's Last Exam (%)
   math?: number; // AIME 2025 or 2026 (%)
   mathBenchmark?: "AIME 2025" | "AIME 2026";
-  general: number; // MMLU-Pro (%)
+  general?: number; // MMLU-Pro (%)
   multimodal?: number; // MMMU-Pro (%)
   elo?: number; // LMArena Elo rating
 }
@@ -79,8 +79,10 @@ export function overallScore(model: Model): number {
   const s = model.scores;
   const parts = [
     normalize(s.reasoning, "reasoning"),
-    normalize(s.general, "general"),
   ];
+  if (s.general != null) {
+    parts.push(normalize(s.general, "general"));
+  }
   // Coding: prefer SWE-Bench, fall back to LiveCodeBench
   if (s.coding != null) {
     parts.push(normalize(s.coding, "coding"));
@@ -384,6 +386,91 @@ export const models: Model[] = [
     scores: { coding: 80, codingLive: 89, reasoning: 90, reasoningHle: 35, math: 99, mathBenchmark: "AIME 2025", general: 87, elo: 1441 },
     providers: [
       { providerId: "openai", costPer1MInput: 1.75, costPer1MOutput: 14.00, costPer1MCachedInput: 0.175, tokensPerSecond: 87 },
+    ],
+  },
+  {
+    id: "claude-sonnet-4-5",
+    name: "Claude 4.5 Sonnet",
+    labId: "anthropic",
+    contextWindow: 200_000,
+    maxOutputTokens: 64_000,
+    knowledgeCutoff: "2025-07",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    releaseDate: "2025-09-29",
+    releaseUrl: "https://www.anthropic.com/news/claude-sonnet-4-5",
+    scores: { coding: 77, codingLive: 71, reasoning: 83, reasoningHle: 17, math: 88, mathBenchmark: "AIME 2025", general: 88 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 85 },
+    ],
+  },
+  {
+    id: "claude-haiku-4-5",
+    name: "Claude 4.5 Haiku",
+    labId: "anthropic",
+    contextWindow: 200_000,
+    maxOutputTokens: 64_000,
+    knowledgeCutoff: "2025-02",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    releaseDate: "2025-10-15",
+    releaseUrl: "https://www.anthropic.com/news/claude-haiku-4-5",
+    scores: { coding: 73, codingLive: 51, reasoning: 65, reasoningHle: 4, math: 39, mathBenchmark: "AIME 2025", general: 80 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 1.00, costPer1MOutput: 5.00, costPer1MCachedInput: 0.10, tokensPerSecond: 109 },
+    ],
+  },
+  {
+    id: "claude-opus-4-5",
+    name: "Claude 4.5 Opus",
+    labId: "anthropic",
+    contextWindow: 200_000,
+    maxOutputTokens: 64_000,
+    knowledgeCutoff: "2025-05",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    releaseDate: "2025-11-24",
+    releaseUrl: "https://www.anthropic.com/news/claude-opus-4-5",
+    scores: { coding: 81, codingLive: 87, reasoning: 87, reasoningHle: 28, math: 91, mathBenchmark: "AIME 2025", general: 90 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 88 },
+    ],
+  },
+  {
+    id: "claude-opus-4-6",
+    name: "Claude Opus 4.6",
+    labId: "anthropic",
+    contextWindow: 200_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2025-08",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    releaseDate: "2026-02-05",
+    releaseUrl: "https://www.anthropic.com/news/claude-opus-4-6",
+    scores: { coding: 81, reasoning: 90, reasoningHle: 37, math: 100, mathBenchmark: "AIME 2025", multimodal: 74 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 73 },
+    ],
+  },
+  {
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
+    labId: "anthropic",
+    contextWindow: 200_000,
+    maxOutputTokens: 64_000,
+    knowledgeCutoff: "2025-08",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    releaseDate: "2026-02-17",
+    releaseUrl: "https://www.anthropic.com/news/claude-sonnet-4-6",
+    scores: { coding: 80, reasoning: 88, reasoningHle: 30, general: 89, multimodal: 75 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 57 },
     ],
   },
 ];
