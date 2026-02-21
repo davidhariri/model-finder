@@ -1,18 +1,30 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://models.dhariri.com"),
   title: "Model Browser — LLM Intelligence, Speed & Cost Compared",
   description:
     "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
+  keywords: ["LLM", "AI models", "benchmark", "GPT", "Claude", "Gemini", "comparison", "cost", "speed", "intelligence"],
+  authors: [{ name: "David Hariri", url: "https://dhariri.com" }],
+  robots: { index: true, follow: true },
   openGraph: {
     title: "Model Browser",
     description:
       "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
     type: "website",
+    siteName: "Model Browser",
   },
   twitter: {
     card: "summary_large_image",
