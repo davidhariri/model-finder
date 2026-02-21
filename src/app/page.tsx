@@ -240,7 +240,7 @@ export default function Home() {
                 </tr>
                 <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
                   <td className="py-2.5 text-foreground font-medium">Math</td>
-                  <td className="py-2.5 text-right"><a href="https://artofproblemsolving.com/wiki/index.php/2025_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2025</a></td>
+                  <td className="py-2.5 text-right"><a href="https://artofproblemsolving.com/wiki/index.php/2025_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2025</a>, <a href="https://artofproblemsolving.com/wiki/index.php/2026_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2026</a></td>
                 </tr>
                 <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
                   <td className="py-2.5 text-foreground font-medium">General</td>
@@ -253,7 +253,7 @@ export default function Home() {
             </p>
             <p>
               <span className="font-semibold text-foreground mb-1 block">Sources</span>
-              <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Artificial Analysis</a>, <a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-bench</a>, <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena</a>, and provider documentation.
+              <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Artificial Analysis</a>, <a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-bench</a>, <a href="https://matharena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MathArena</a>, <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena</a>, and provider documentation.
             </p>
             <p>
               <span className="font-semibold text-foreground mb-1 block">Built with</span>

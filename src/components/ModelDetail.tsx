@@ -283,7 +283,7 @@ export default function ModelDetail({
                     }}
                   />
                 </div>
-                <span className="text-[13px] font-semibold text-foreground w-16 text-right">
+                <span className="text-[13px] font-semibold text-foreground w-24 shrink-0 text-right">
                   {s.display}
                 </span>
               </div>
