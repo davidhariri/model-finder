@@ -34,8 +34,10 @@ interface ChartProps extends ScatterProps {
 
 type ScatterMode = "cost" | "speed";
 
-const SAUSAGE_HEIGHT = 12;
-const MIN_SAUSAGE_WIDTH = 12;
+const SAUSAGE_HEIGHT = 16;
+const MIN_SAUSAGE_WIDTH = 16;
+const HIT_AREA_HEIGHT = 36;
+const HIT_AREA_PADDING = 8;
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 const DURATION = "0.6s";
 
@@ -92,21 +94,33 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
     dy: 4,
   });
 
-  // Compute y-offsets for models sharing the same intelligence score
+  // Spread overlapping sausages apart based on actual pixel positions
   const nudgeMap = new Map<string, number>();
   {
-    const scoreGroups = new Map<number, string[]>();
-    for (const m of models) {
-      const s = overallScore(m);
-      const group = scoreGroups.get(s) ?? [];
-      group.push(m.id);
-      scoreGroups.set(s, group);
+    const MIN_GAP = SAUSAGE_HEIGHT + 4; // minimum px between sausage centers
+    const items = models
+      .map((m) => ({ id: m.id, baseY: yScale(overallScore(m)) }))
+      .sort((a, b) => a.baseY - b.baseY);
+
+    // Iteratively push overlapping items apart (centered around their group midpoint)
+    const adjustedY = items.map((it) => it.baseY);
+    for (let pass = 0; pass < 10; pass++) {
+      let moved = false;
+      for (let i = 1; i < adjustedY.length; i++) {
+        const gap = adjustedY[i] - adjustedY[i - 1];
+        if (gap < MIN_GAP) {
+          const push = (MIN_GAP - gap) / 2;
+          adjustedY[i - 1] -= push;
+          adjustedY[i] += push;
+          moved = true;
+        }
+      }
+      if (!moved) break;
     }
-    for (const [, ids] of scoreGroups) {
-      if (ids.length <= 1) continue;
-      ids.forEach((id, i) => {
-        nudgeMap.set(id, (i - (ids.length - 1) / 2) * (SAUSAGE_HEIGHT + 2));
-      });
+
+    for (let i = 0; i < items.length; i++) {
+      const offset = adjustedY[i] - items[i].baseY;
+      if (offset !== 0) nudgeMap.set(items[i].id, offset);
     }
   }
 
@@ -186,94 +200,116 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
               Benchmark Scores
             </tspan>
           </text>
-          {models.map((model) => {
-            const [minCost, maxCost] = costRange(model);
-            const [minSpeed, maxSpeed] = speedRange(model);
-            const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
+          {/* Precompute layout for both passes */}
+          {(() => {
+            const sorted = [...models].sort((a, b) => {
+              const aHovered = tooltipData?.id === a.id ? 1 : 0;
+              const bHovered = tooltipData?.id === b.id ? 1 : 0;
+              return aHovered - bHovered;
+            });
 
-            // Compute sausage position based on mode
-            const x1 = isCost ? costXScale(minCost) : speedXScale(minSpeed);
-            const x2 = isCost ? costXScale(maxCost) : speedXScale(maxSpeed);
-            const rawWidth = x2 - x1;
-            const sausageWidth = Math.max(rawWidth, MIN_SAUSAGE_WIDTH);
-            const sausageX =
-              rawWidth < MIN_SAUSAGE_WIDTH
-                ? x1 - (MIN_SAUSAGE_WIDTH - rawWidth) / 2
-                : x1;
-
-            const isHighlighted = !tooltipOpen || tooltipData?.id === model.id;
-            const isHovered = tooltipData?.id === model.id;
-            const labelX = sausageX + sausageWidth / 2;
-            const labelY = cy - SAUSAGE_HEIGHT / 2 - 6;
+            const layoutItems = sorted.map((model) => {
+              const [minCost, maxCost] = costRange(model);
+              const [minSpeed, maxSpeed] = speedRange(model);
+              const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
+              const x1 = isCost ? costXScale(minCost) : speedXScale(minSpeed);
+              const x2 = isCost ? costXScale(maxCost) : speedXScale(maxSpeed);
+              const rawWidth = x2 - x1;
+              const sausageWidth = Math.max(rawWidth, MIN_SAUSAGE_WIDTH);
+              const sausageX = rawWidth < MIN_SAUSAGE_WIDTH ? x1 - (MIN_SAUSAGE_WIDTH - rawWidth) / 2 : x1;
+              const isHighlighted = !tooltipOpen || tooltipData?.id === model.id;
+              const isHovered = tooltipData?.id === model.id;
+              const labelX = sausageX + sausageWidth / 2;
+              const labelY = cy - SAUSAGE_HEIGHT / 2 - 8;
+              return { model, cy, sausageX, sausageWidth, isHighlighted, isHovered, labelX, labelY };
+            });
 
             return (
-              <g key={model.id}>
-                {/* Sausage — animated via CSS geometric properties (SVG2) */}
-                <rect
-                  height={SAUSAGE_HEIGHT}
-                  rx={SAUSAGE_HEIGHT / 2}
-                  fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
-                  onMouseMove={(e) => {
-                    const svgRect = e.currentTarget
-                      .closest("svg")
-                      ?.getBoundingClientRect();
-                    showTooltip({
-                      tooltipData: model,
-                      tooltipLeft: e.clientX - (svgRect?.left ?? 0),
-                      tooltipTop: e.clientY - (svgRect?.top ?? 0) + 16,
-                    });
-                  }}
-                  onMouseLeave={hideTooltip}
-                  onClick={() => onModelClick?.(model)}
-                  style={{
-                    x: sausageX,
-                    y: cy - SAUSAGE_HEIGHT / 2,
-                    width: sausageWidth,
-                    opacity: isHighlighted ? 0.85 : 0.25,
-                    transition: `x ${DURATION} ${EASING}, width ${DURATION} ${EASING}, opacity 0.2s ease`,
-                    cursor: "pointer",
-                  } as React.CSSProperties}
-                />
-                {/* Label with halo — animated position */}
-                {(!tooltipOpen || isHovered) && (
-                  <g
-                    style={{
-                      transform: `translate(${labelX}px, ${labelY}px)`,
-                      transition: `transform ${DURATION} ${EASING}`,
-                    }}
-                  >
-                    <Text
-                      x={0}
-                      y={0}
-                      textAnchor="middle"
-                      fill="var(--background)"
-                      fontSize={10}
-                      fontWeight={500}
-                      opacity={tooltipOpen ? 1 : 0.85}
-                      stroke="var(--background)"
-                      strokeWidth={4}
-                      paintOrder="stroke"
-                      style={{ transition: "opacity 0.2s ease" }}
-                    >
-                      {model.name}
-                    </Text>
-                    <Text
-                      x={0}
-                      y={0}
-                      textAnchor="middle"
-                      fill="var(--foreground-secondary)"
-                      fontSize={10}
-                      fontWeight={500}
-                      opacity={tooltipOpen ? 1 : 0.7}
-                      style={{ transition: "opacity 0.2s ease" }}
-                    >
-                      {model.name}
-                    </Text>
+              <>
+                {/* Pass 1: hit areas + sausages */}
+                {layoutItems.map(({ model, cy, sausageX, sausageWidth, isHighlighted }) => (
+                  <g key={model.id}>
+                    <rect
+                      height={HIT_AREA_HEIGHT}
+                      rx={HIT_AREA_HEIGHT / 2}
+                      fill="transparent"
+                      onMouseMove={(e) => {
+                        const svgRect = e.currentTarget.closest("svg")?.getBoundingClientRect();
+                        showTooltip({
+                          tooltipData: model,
+                          tooltipLeft: e.clientX - (svgRect?.left ?? 0),
+                          tooltipTop: e.clientY - (svgRect?.top ?? 0) + 16,
+                        });
+                      }}
+                      onMouseLeave={hideTooltip}
+                      onClick={() => onModelClick?.(model)}
+                      style={{
+                        x: sausageX - HIT_AREA_PADDING,
+                        y: cy - HIT_AREA_HEIGHT / 2,
+                        width: sausageWidth + HIT_AREA_PADDING * 2,
+                        transition: `x ${DURATION} ${EASING}, width ${DURATION} ${EASING}`,
+                        cursor: "pointer",
+                      } as React.CSSProperties}
+                    />
+                    <rect
+                      height={SAUSAGE_HEIGHT}
+                      rx={SAUSAGE_HEIGHT / 2}
+                      fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
+                      stroke="var(--border)"
+                      strokeWidth={1}
+                      pointerEvents="none"
+                      style={{
+                        x: sausageX,
+                        y: cy - SAUSAGE_HEIGHT / 2,
+                        width: sausageWidth,
+                        opacity: isHighlighted ? 1 : 0.35,
+                        transition: `x ${DURATION} ${EASING}, width ${DURATION} ${EASING}, opacity 0.2s ease`,
+                      } as React.CSSProperties}
+                    />
                   </g>
-                )}
-              </g>
+                ))}
+                {/* Pass 2: labels on top of all sausages */}
+                {layoutItems.map(({ model, labelX, labelY, isHovered }) => (
+                  (!tooltipOpen || isHovered) && (
+                    <g
+                      key={`label-${model.id}`}
+                      style={{
+                        transform: `translate(${labelX}px, ${labelY}px)`,
+                        transition: `transform ${DURATION} ${EASING}`,
+                      }}
+                    >
+                      <Text
+                        x={0}
+                        y={0}
+                        textAnchor="middle"
+                        fill="var(--background)"
+                        fontSize={11}
+                        fontWeight={500}
+                        stroke="var(--background)"
+                        strokeWidth={4}
+                        paintOrder="stroke"
+                        style={{ transition: "opacity 0.2s ease" }}
+                      >
+                        {model.name}
+                      </Text>
+                      <Text
+                        x={0}
+                        y={0}
+                        textAnchor="middle"
+                        fill="var(--foreground-secondary)"
+                        fontSize={11}
+                        fontWeight={500}
+                        opacity={tooltipOpen ? 1 : 0.8}
+                        style={{ transition: "opacity 0.2s ease" }}
+                      >
+                        {model.name}
+                      </Text>
+                    </g>
+                  )
+                ))}
+              </>
             );
-          })}
+          })()}
         </Group>
       </svg>
       {tooltipOpen && tooltipData && (
