@@ -5,9 +5,21 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "LLM Benchmark — Model Intelligence Compared",
+  title: "Model Browser — LLM Intelligence, Speed & Cost Compared",
   description:
     "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
+  openGraph: {
+    title: "Model Browser",
+    description:
+      "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Model Browser",
+    description:
+      "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
+  },
 };
 
 export default function RootLayout({
