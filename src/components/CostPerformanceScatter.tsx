@@ -45,7 +45,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   const pointRadius = compact ? POINT_RADIUS_COMPACT : POINT_RADIUS_DEFAULT;
   const labelFontSize = compact ? 9 : 11;
   const margin = compact
-    ? { top: 16, right: 16, bottom: 56, left: 44 }
+    ? { top: 16, right: 16, bottom: 68, left: 44 }
     : { top: 24, right: 32, bottom: 72, left: 64 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -162,7 +162,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
             <AxisBottom
               top={innerHeight}
               scale={costXScale}
-              tickValues={[0.1, 0.3, 1, 3, 10, 30, 50]}
+              tickValues={[0.1, 0.3, 1, 3, 10, 50]}
               tickFormat={(v) => {
                 const n = Number(v);
                 return `$${n < 1 ? n.toFixed(2) : n.toFixed(1)}`;
@@ -300,7 +300,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
         </Group>
       </svg>
 
-      {tooltipOpen && tooltipData && (
+      {!compact && tooltipOpen && tooltipData && (
         <TooltipWithBounds
           left={tooltipLeft}
           top={tooltipTop}
@@ -378,8 +378,8 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
         </span>
         <button
           onClick={advance}
-          className="relative cursor-pointer overflow-hidden text-left"
-          style={{ height: ITEM_HEIGHT }}
+          className="relative cursor-pointer overflow-hidden text-left border-b"
+          style={{ height: ITEM_HEIGHT, borderColor: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}
         >
           <div
             style={{
@@ -399,12 +399,19 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
           </div>
         </button>
       </div>
-      <ParentSize>
-        {({ width }) =>
-          width > 0 ? (
-            <Chart models={models} width={width} height={width < 500 ? 360 : 520} mode={mode} onModelClick={onModelClick} onAboutClick={onAboutClick} />
-          ) : null
-        }
+      <ParentSize className="aspect-[39/36] md:aspect-[102/52]">
+        {({ width }) => (
+          <div
+            style={{
+              opacity: width > 0 ? 1 : 0,
+              transition: "opacity 300ms ease",
+            }}
+          >
+            {width > 0 && (
+              <Chart models={models} width={width} height={width < 500 ? 360 : 520} mode={mode} onModelClick={onModelClick} onAboutClick={onAboutClick} />
+            )}
+          </div>
+        )}
       </ParentSize>
     </div>
   );

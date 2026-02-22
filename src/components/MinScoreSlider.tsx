@@ -15,7 +15,6 @@ interface MinScoreSliderProps {
   min?: number;
   max?: number;
   step?: number;
-  empty?: boolean;
   label?: string;
   unit?: string;
   prefix?: string;
@@ -70,7 +69,6 @@ export default function MinScoreSlider({
   min = 0,
   max = 100,
   step = 1,
-  empty = false,
   label = "Minimum Intelligence",
   unit,
   prefix,
@@ -233,14 +231,14 @@ export default function MinScoreSlider({
 
       {/* Static label below */}
       <span
-        className="mt-5 text-xs font-medium"
+        className="mt-5 text-sm font-medium"
         style={{
           transform: held ? "translateY(12px)" : "translateY(0)",
-          color: empty ? "#f59e0b" : "var(--foreground-secondary)",
-          transition: `transform 0.4s ${SPRING}, color 0.3s ease`,
+          color: "var(--foreground-tertiary)",
+          transition: `transform 0.4s ${SPRING}`,
         }}
       >
-        {empty ? "No Possible Models" : label}
+        {label}
       </span>
     </div>
   );

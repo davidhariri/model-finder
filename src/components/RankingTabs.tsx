@@ -93,9 +93,14 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
   };
   const gradientId = gradientIds[tab];
 
-  // Animate bars on mount / tab change
-  const [progress, setProgress] = useState(0);
+  // Animate bars on tab change (skip on first mount — fade-in handles it)
+  const isFirstMount = useRef(true);
+  const [progress, setProgress] = useState(1);
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
     setProgress(0);
     const raf = requestAnimationFrame(() => {
       setProgress(1);
@@ -168,7 +173,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
                 {compact ? (
                   <foreignObject
                     x={0}
-                    y={y + barHeight + 2}
+                    y={y + barHeight + 4}
                     width={innerWidth}
                     height={18}
                   >
@@ -256,7 +261,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
           )}
         </Group>
       </svg>
-      {tooltipOpen && tooltipData && (
+      {!compact && tooltipOpen && tooltipData && (
         <TooltipWithBounds
           left={tooltipLeft}
           top={tooltipTop}
@@ -338,7 +343,7 @@ export default function RankingTabs({ models, minScore, onModelClick, onAboutCli
 
   return (
     <div>
-      <div className="flex gap-4 md:gap-6 mb-6 justify-center">
+      <div className="flex gap-4 md:gap-6 mb-3 md:mb-6 justify-center">
         <button
           onClick={() => switchTab("intelligence")}
           className={`text-lg md:text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
@@ -379,20 +384,27 @@ export default function RankingTabs({ models, minScore, onModelClick, onAboutCli
           transition: "transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, height 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
-        <ParentSize>
-          {({ width }) =>
-            width > 0 ? (
-              <Chart
-                models={models}
-                tab={tab}
-                width={width}
-                height={chartHeight}
-                animKey={animKey}
-                onModelClick={onModelClick}
-                onAboutClick={onAboutClick}
-              />
-            ) : null
-          }
+        <ParentSize style={{ minHeight: chartHeight }}>
+          {({ width }) => (
+            <div
+              style={{
+                opacity: width > 0 ? 1 : 0,
+                transition: "opacity 300ms ease",
+              }}
+            >
+              {width > 0 && (
+                <Chart
+                  models={models}
+                  tab={tab}
+                  width={width}
+                  height={chartHeight}
+                  animKey={animKey}
+                  onModelClick={onModelClick}
+                  onAboutClick={onAboutClick}
+                />
+              )}
+            </div>
+          )}
         </ParentSize>
       </div>
     </div>

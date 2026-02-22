@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Model, models, overallScore, bestSpeed, bestCost, getLab } from "@/data/models";
+import { Model, models, providers, overallScore, bestSpeed, bestCost, getLab, getProvider } from "@/data/models";
 import CostPerformanceScatter from "@/components/CostPerformanceScatter";
 import RankingTabs from "@/components/RankingTabs";
 import ModelDetail from "@/components/ModelDetail";
@@ -16,6 +16,7 @@ export default function Home() {
   const [maxCostVal, setMaxCostVal] = useState(20);
   const [requireVision, setRequireVision] = useState(false);
   const [requireOpenWeights, setRequireOpenWeights] = useState(false);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [closingModal, setClosingModal] = useState(false);
@@ -80,13 +81,16 @@ export default function Home() {
     return () => { document.body.style.overflow = ""; };
   }, [selectedModel]);
 
+  const filtersChanged = minScore !== 0 || minSpeedVal !== 0 || maxCostVal !== 50 || requireVision || requireOpenWeights || selectedProviderId !== null;
+
   const filtered = models.filter(
     (m) =>
       overallScore(m) >= minScore &&
       bestSpeed(m) >= minSpeedVal &&
       (maxCostVal >= 50 || bestCost(m) <= maxCostVal) &&
       (!requireVision || m.supportsImages) &&
-      (!requireOpenWeights || m.openWeights)
+      (!requireOpenWeights || m.openWeights) &&
+      (!selectedProviderId || m.providers.some((p) => p.providerId === selectedProviderId))
   );
 
   const toggleSort = (col: string) => {
@@ -142,26 +146,39 @@ export default function Home() {
       {/* About panel */}
       <div
         ref={aboutPanelRef}
-        className="fixed inset-0 z-50 flex items-center justify-center"
+        className="fixed inset-0 z-50 flex items-center justify-center md:items-center"
         style={{
           pointerEvents: aboutOpen ? "auto" : "none",
         }}
         onClick={() => setAboutOpen(false)}
       >
         <div
-          className="rounded-3xl px-5 py-8 md:px-8 md:py-10 max-w-[calc(100vw-32px)] md:max-w-[480px]"
+          className="md:rounded-3xl px-5 py-8 pb-5 md:px-8 md:py-10 md:pb-8 md:max-w-[480px] w-full h-full md:h-[calc(100vh-64px)] md:w-auto overflow-y-auto"
           style={{
             background: "var(--card-bg)",
             opacity: aboutOpen ? 1 : 0,
-            transform: aboutOpen ? "scale(1)" : "scale(0.9)",
+            transform: aboutOpen ? "scale(1) translateY(0)" : "scale(0.96) translateY(12px)",
             pointerEvents: aboutOpen ? "auto" : "none",
             transition: aboutOpen
-              ? "opacity 0.3s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
+              ? `opacity 0.3s ease, transform 0.45s ${EASING}`
               : `opacity 0.2s ease, transform 0.2s ${EASING}`,
             boxShadow: "0 24px 80px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.04)",
+            scrollbarWidth: "none",
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Header + close button — mobile only */}
+          <div className="md:hidden flex items-start justify-between mb-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">About</h2>
+            <button
+              onClick={() => setAboutOpen(false)}
+              className="text-foreground-tertiary hover:text-foreground transition-colors cursor-pointer p-2 -mt-1 -mr-2"
+            >
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <path d="M7 7l14 14M21 7L7 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
           <div className="space-y-4 text-sm text-foreground-secondary leading-relaxed text-left">
             <p>
               <span className="font-semibold text-foreground mb-1 block">Intelligence Score</span>
@@ -191,6 +208,10 @@ export default function Home() {
               Not all models have all benchmarks — the score averages whichever are available. <a href="https://mmmu-benchmark.github.io" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMMU-Pro</a> (multimodal) and <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena Elo</a> are shown in model details but excluded from the composite. Speed and cost reflect best available provider.
             </p>
             <p>
+              <span className="font-semibold text-foreground mb-1 block">Blended Cost</span>
+              Cost is shown as a weighted average of input and output token prices: (3 × input + 1 × output) ÷ 4. This reflects typical usage where prompts are longer than completions. Where a model is available from multiple providers, the lowest blended cost is used.
+            </p>
+            <p>
               <span className="font-semibold text-foreground mb-1 block">Sources</span>
               <a href="https://artificialanalysis.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Artificial Analysis</a>, <a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-bench</a>, <a href="https://matharena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MathArena</a>, <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena</a>, and provider documentation.
             </p>
@@ -201,9 +222,6 @@ export default function Home() {
             <p>
               <span className="font-semibold text-foreground mb-1 block">Created by</span>
               <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline decoration-foreground/20"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>@davidhariri</a>
-            </p>
-            <p className="text-foreground-tertiary pt-2">
-              <a href="https://github.com/davidhariri/model-finder/issues" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20 hover:text-foreground-secondary transition-colors">Report an issue</a>
             </p>
           </div>
         </div>
@@ -217,15 +235,49 @@ export default function Home() {
         </h1>
         <div className="flex flex-col items-center gap-5 max-w-3xl mx-auto">
           {/* Sliders: stacked on mobile, 3-col on desktop */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            <MinScoreSlider value={minScore} onChange={setMinScore} empty={filtered.length === 0} />
-            <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={500} empty={filtered.length === 0} label="Minimum Best Speed" unit="tok/s" />
-            <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={0} max={50} empty={filtered.length === 0} label="Maximum Blended Cost" prefix="$" unit="/1M" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-xl">
+            <MinScoreSlider value={minScore} onChange={setMinScore} />
+            {/* <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={500} label="Minimum Best Speed" unit="tok/s" /> */}
+            <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={0} max={50} label="Maximum Blended Cost" prefix="$" unit="/1M" />
           </div>
-          {/* Pills + Reset */}
-          <div className="flex gap-3 items-center">
+          {/* Pills + Provider dropdown */}
+          <div className="flex gap-3 items-center flex-wrap justify-center">
             <FilterPill label="Only Vision" active={requireVision} color="magenta" onClick={() => setRequireVision((v) => !v)} icon={<EyeIcon />} />
             <FilterPill label="Only Open Weights" active={requireOpenWeights} color="green" onClick={() => setRequireOpenWeights((v) => !v)} icon={<UnlockedIcon />} />
+            <ProviderDropdown selectedProviderId={selectedProviderId} onChange={setSelectedProviderId} />
+          </div>
+          {/* Empty state + Reset */}
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="text-sm font-medium text-center"
+              style={{
+                color: "#f59e0b",
+                opacity: filtered.length === 0 ? 1 : 0,
+                height: filtered.length === 0 ? "auto" : 0,
+                overflow: "hidden",
+                transition: "opacity 0.3s ease",
+              }}
+            >
+              No possible models
+            </div>
+            <button
+              onClick={() => {
+                setMinScore(0);
+                setMinSpeedVal(0);
+                setMaxCostVal(50);
+                setRequireVision(false);
+                setRequireOpenWeights(false);
+                setSelectedProviderId(null);
+              }}
+              className="text-sm font-medium cursor-pointer transition-all duration-300 hover:opacity-100!"
+              style={{
+                color: "var(--foreground-tertiary)",
+                opacity: filtersChanged ? 0.4 : 0,
+                pointerEvents: filtersChanged ? "auto" : "none",
+              }}
+            >
+              Reset
+            </button>
           </div>
         </div>
       </header>
@@ -324,15 +376,15 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center pb-12 space-y-2">
+      <footer className="text-center pb-12 space-y-4">
         <button
           ref={aboutButtonRef}
           onClick={() => setAboutOpen(true)}
-          className="text-sm text-foreground-tertiary hover:text-foreground-secondary transition-colors cursor-pointer"
+          className="text-sm font-medium text-foreground-tertiary hover:text-foreground-secondary transition-colors cursor-pointer underline decoration-foreground/20"
         >
           About
         </button>
-        <p className="text-xs text-foreground-tertiary">Last updated February 22, 2026</p>
+        <p className="text-sm font-medium text-foreground-tertiary">Last updated February 22, 2026</p>
       </footer>
 
     </main>
@@ -427,6 +479,90 @@ function FilterPill({ label, active, color, icon, onClick }: { label: string; ac
       {icon}
       {label}
     </button>
+  );
+}
+
+function ProviderDropdown({ selectedProviderId, onChange }: { selectedProviderId: string | null; onChange: (id: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = selectedProviderId !== null;
+  const selectedProvider = selectedProviderId ? getProvider(selectedProviderId) : null;
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    }
+    document.addEventListener("pointerdown", handleClick);
+    return () => document.removeEventListener("pointerdown", handleClick);
+  }, [open]);
+
+  // Only show providers that have models
+  const providerIds = new Set(models.flatMap((m) => m.providers.map((p) => p.providerId)));
+  const availableProviders = providers.filter((p) => providerIds.has(p.id));
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`text-sm font-medium cursor-pointer h-[44px] px-5 rounded-full transition-colors duration-200 flex items-center gap-1.5 ${
+          active
+            ? "bg-foreground text-background"
+            : "bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] text-foreground-secondary hover:text-foreground"
+        }`}
+      >
+        {selectedProviderId && <BrandIcon id={selectedProviderId} size={14} />}
+        {selectedProvider?.name ?? "All Providers"}
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="ml-0.5"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}
+        >
+          <path d="M2.5 4L5 6.5L7.5 4" />
+        </svg>
+      </button>
+      <div
+        className="absolute top-full left-0 mt-2 rounded-2xl py-1.5 z-50 min-w-[220px]"
+        style={{
+          background: "var(--card-bg)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+          border: "1px solid var(--card-border)",
+          opacity: open ? 1 : 0,
+          transform: open ? "scale(1)" : "scale(0.95)",
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 0.15s ease, transform 0.15s ease",
+        }}
+      >
+        <button
+          onClick={() => { onChange(null); setOpen(false); }}
+          className={`w-full text-left text-sm px-4 py-2 cursor-pointer transition-colors flex items-center gap-2 ${
+            !selectedProviderId ? "text-foreground font-medium" : "text-foreground-secondary hover:text-foreground"
+          }`}
+        >
+          All Providers
+        </button>
+        {availableProviders.map((provider) => (
+          <button
+            key={provider.id}
+            onClick={() => { onChange(provider.id); setOpen(false); }}
+            className={`w-full text-left text-sm px-4 py-2 cursor-pointer transition-colors flex items-center gap-2 ${
+              selectedProviderId === provider.id ? "text-foreground font-medium" : "text-foreground-secondary hover:text-foreground"
+            }`}
+          >
+            <BrandIcon id={provider.id} size={14} className="shrink-0" />
+            {provider.name}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
