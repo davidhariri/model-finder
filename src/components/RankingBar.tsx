@@ -23,7 +23,8 @@ function Chart({ models, width, height }: ChartProps) {
     (a, b) => overallScore(b) - overallScore(a)
   );
 
-  const margin = { top: 8, right: 48, bottom: 8, left: 160 };
+  const compact = width < 500;
+  const margin = { top: 8, right: 48, bottom: 8, left: compact ? 100 : 160 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -74,7 +75,7 @@ function Chart({ models, width, height }: ChartProps) {
                   textAnchor="end"
                   verticalAnchor="middle"
                   fill="var(--foreground-secondary)"
-                  fontSize={13}
+                  fontSize={compact ? 11 : 13}
                   fontWeight={500}
                 >
                   {model.name}

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
-const TRACK_WIDTH = 300;
+const MAX_TRACK_WIDTH = 300;
 const TRACK_HEIGHT = 40;
 const THUMB_SIZE = 32;
 const PAD = (TRACK_HEIGHT - THUMB_SIZE) / 2;
-const THUMB_RANGE = TRACK_WIDTH - THUMB_SIZE - PAD * 2;
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 const SPRING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
 
@@ -79,34 +78,49 @@ export default function MinScoreSlider({
 }: MinScoreSliderProps) {
   const [held, setHeld] = useState(false);
   const [moved, setMoved] = useState(false);
+  const [trackWidth, setTrackWidth] = useState(MAX_TRACK_WIDTH);
   const trackRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? MAX_TRACK_WIDTH;
+      setTrackWidth(Math.min(MAX_TRACK_WIDTH, w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const thumbRange = trackWidth - THUMB_SIZE - PAD * 2;
 
   const getVal = useCallback(
     (clientX: number) => {
       const rect = trackRef.current?.getBoundingClientRect();
       if (!rect) return value;
       const x = clientX - rect.left - PAD - THUMB_SIZE / 2;
-      const r = Math.max(0, Math.min(1, x / THUMB_RANGE));
+      const r = Math.max(0, Math.min(1, x / thumbRange));
       const curved = Math.pow(r, curve);
       const raw = min + curved * (max - min);
       if (curve > 1) return niceSnap(raw, max);
       return Math.round(raw / step) * step;
     },
-    [min, max, step, curve, value]
+    [min, max, step, curve, value, thumbRange]
   );
 
   const ratio = Math.pow(Math.max(0, (value - min) / (max - min)), 1 / curve);
-  const thumbLeft = PAD + ratio * THUMB_RANGE;
+  const thumbLeft = PAD + ratio * thumbRange;
 
   const displayVal = curve > 1 ? fmt(value) : (step < 1 ? value.toFixed(1) : String(value));
 
   return (
-    <div className="flex flex-col items-center">
+    <div ref={containerRef} className="flex flex-col items-center w-full">
       <div
         ref={trackRef}
         className="relative select-none touch-none cursor-pointer"
         style={{
-          width: TRACK_WIDTH,
+          width: trackWidth,
           height: TRACK_HEIGHT,
           borderRadius: TRACK_HEIGHT / 2,
           background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
@@ -140,7 +154,7 @@ export default function MinScoreSlider({
           return ticks;
         })().map((v, i) => {
           const r = Math.pow((v - min) / (max - min), 1 / curve);
-          const x = PAD + r * THUMB_RANGE + THUMB_SIZE / 2;
+          const x = PAD + r * thumbRange + THUMB_SIZE / 2;
           return (
             <div
               key={v}

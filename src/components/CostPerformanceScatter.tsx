@@ -36,13 +36,19 @@ interface TooltipPoint {
   provider: ModelProvider;
 }
 
-const POINT_RADIUS = 7;
+const POINT_RADIUS_DEFAULT = 7;
+const POINT_RADIUS_COMPACT = 5;
 const HIT_RADIUS = 14;
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 const DURATION = "0.6s";
 
 function Chart({ models, width, height, mode, onModelClick, onAboutClick }: ChartProps) {
-  const margin = { top: 24, right: 32, bottom: 72, left: 64 };
+  const compact = width < 500;
+  const pointRadius = compact ? POINT_RADIUS_COMPACT : POINT_RADIUS_DEFAULT;
+  const labelFontSize = compact ? 9 : 11;
+  const margin = compact
+    ? { top: 16, right: 16, bottom: 56, left: 44 }
+    : { top: 24, right: 32, bottom: 72, left: 64 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -96,7 +102,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   // Spread overlapping models apart on Y axis
   const nudgeMap = new Map<string, number>();
   {
-    const MIN_GAP = POINT_RADIUS * 2 + 4;
+    const MIN_GAP = pointRadius * 2 + 4;
     const items = models
       .map((m) => ({ id: m.id, baseY: yScale(overallScore(m)) }))
       .sort((a, b) => a.baseY - b.baseY);
@@ -210,7 +216,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
           />
           {/* Y-axis label with clickable "Benchmark Scores" */}
           <text
-            transform={`translate(${-52}, ${innerHeight / 2}) rotate(-90)`}
+            transform={`translate(${compact ? -36 : -52}, ${innerHeight / 2}) rotate(-90)`}
             textAnchor="middle"
             fill="var(--foreground-secondary)"
             fontSize={12}
@@ -253,7 +259,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
               <circle
                 cx={cx}
                 cy={cy}
-                r={POINT_RADIUS}
+                r={pointRadius}
                 fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
                 stroke="var(--border)"
                 strokeWidth={1}
@@ -271,7 +277,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
             <g
               key={`label-${key}`}
               style={{
-                transform: `translate(${cx}px, ${cy - POINT_RADIUS - 6}px)`,
+                transform: `translate(${cx}px, ${cy - pointRadius - 6}px)`,
                 transition: `transform ${DURATION} ${EASING}`,
               }}
             >
@@ -280,7 +286,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
                 y={0}
                 textAnchor="middle"
                 fill="var(--background)"
-                fontSize={11}
+                fontSize={labelFontSize}
                 fontWeight={500}
                 stroke="var(--background)"
                 strokeWidth={4}
@@ -295,7 +301,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
                 y={0}
                 textAnchor="middle"
                 fill="var(--foreground-secondary)"
-                fontSize={11}
+                fontSize={labelFontSize}
                 fontWeight={500}
                 opacity={isHighlighted ? (tooltipOpen ? 1 : 0.8) : 0.3}
                 style={{ transition: "opacity 0.2s ease" }}
@@ -385,10 +391,10 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
   return (
     <div>
       <div className="flex items-baseline justify-center">
-        <span className="text-2xl font-semibold tracking-tight text-foreground">
+        <span className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">
           Intelligence
         </span>
-        <span className="text-2xl font-semibold tracking-tight text-foreground-tertiary mx-4">
+        <span className="text-xl md:text-2xl font-semibold tracking-tight text-foreground-tertiary mx-2 md:mx-4">
           by
         </span>
         <button
@@ -405,7 +411,7 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
             {[...MODES, MODES[0]].map((m, i) => (
               <div
                 key={i}
-                className="text-2xl font-semibold tracking-tight text-foreground"
+                className="text-xl md:text-2xl font-semibold tracking-tight text-foreground"
                 style={{ height: ITEM_HEIGHT, lineHeight: `${ITEM_HEIGHT}px` }}
               >
                 {MODE_LABELS[m]}
@@ -417,7 +423,7 @@ export default function CostPerformanceScatter({ models, onModelClick, onAboutCl
       <ParentSize>
         {({ width }) =>
           width > 0 ? (
-            <Chart models={models} width={width} height={520} mode={mode} onModelClick={onModelClick} onAboutClick={onAboutClick} />
+            <Chart models={models} width={width} height={width < 500 ? 360 : 520} mode={mode} onModelClick={onModelClick} onAboutClick={onAboutClick} />
           ) : null
         }
       </ParentSize>

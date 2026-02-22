@@ -21,8 +21,8 @@
   --tooltip-fg: #f5f5f7;
   --speed-bar-start: #FF9500;
   --speed-bar-end: #FF9500;
-  --cost-bar-start: #AF52DE;
-  --cost-bar-end: #AF52DE;
+  --cost-bar-start: #D4A0F0;
+  --cost-bar-end: #D4A0F0;
   --cost-bar-output-start: #AF52DE;
   --cost-bar-output-end: #AF52DE;
   --system-green: #34C759;
@@ -52,8 +52,8 @@
     --tooltip-fg: #f5f5f7;
     --speed-bar-start: #FF9F0A;
     --speed-bar-end: #FF9F0A;
-    --cost-bar-start: #BF5AF2;
-    --cost-bar-end: #BF5AF2;
+    --cost-bar-start: #D9A0FF;
+    --cost-bar-end: #D9A0FF;
     --cost-bar-output-start: #BF5AF2;
     --cost-bar-output-end: #BF5AF2;
     --system-green: #30D158;
@@ -93,4 +93,10 @@ svg text {
   font-family: inherit;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes holographic-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }

@@ -161,7 +161,7 @@ export default function Home() {
         onClick={() => setOptionsOpen(false)}
       >
         <div
-          className="rounded-3xl px-8 pt-14 pb-8"
+          className="rounded-3xl px-6 md:px-8 pt-14 pb-8 max-w-[calc(100vw-32px)]"
           style={{
             background: "var(--card-bg)",
             opacity: optionsOpen ? 1 : 0,
@@ -210,7 +210,7 @@ export default function Home() {
         onClick={() => setAboutOpen(false)}
       >
         <div
-          className="rounded-3xl px-8 py-10 max-w-[480px]"
+          className="rounded-3xl px-5 py-8 md:px-8 md:py-10 max-w-[calc(100vw-32px)] md:max-w-[480px]"
           style={{
             background: "var(--card-bg)",
             opacity: aboutOpen ? 1 : 0,
@@ -272,9 +272,9 @@ export default function Home() {
         </div>
       </div>
 
-    <main className="mx-auto max-w-5xl px-6 pt-8 pb-16 md:pt-12 md:pb-24">
+    <main className="mx-auto max-w-5xl px-4 md:px-6 pt-8 pb-16 md:pt-12 md:pb-24">
       {/* Hero */}
-      <header className="mb-20 text-center">
+      <header className="mb-12 md:mb-20 text-center">
         <div className="mb-6 flex items-center justify-center gap-1">
           <button
             ref={buttonRef}
@@ -313,17 +313,17 @@ export default function Home() {
       </header>
 
       {/* Intelligence by Cost/Speed scatter */}
-      <section className="mb-24">
+      <section className="mb-16 md:mb-24">
         <CostPerformanceScatter models={filtered} onModelClick={openModel} onAboutClick={() => { setAboutOpen(true); setOptionsOpen(false); }} />
       </section>
 
       {/* Rankings — tabbed Intelligence / Speed / Cost */}
-      <section className="mb-24">
+      <section className="mb-16 md:mb-24">
         <RankingTabs models={filtered} minScore={minScore} onModelClick={openModel} onAboutClick={() => { setAboutOpen(true); setOptionsOpen(false); }} />
       </section>
 
       {/* All Models table */}
-      <section className="mb-24">
+      <section className="mb-16 md:mb-24">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground text-center mb-4">
           All Models
         </h2>
@@ -340,7 +340,7 @@ export default function Home() {
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               placeholder="Search"
-              className={`text-sm text-foreground bg-transparent border border-[var(--card-border)] rounded-full pl-9 ${searchQuery ? "pr-8" : "pr-4"} py-2 outline-none transition-all duration-300 w-48 focus:w-72 placeholder:text-foreground-tertiary focus:border-[var(--foreground-tertiary)]`}
+              className={`text-sm text-foreground bg-transparent border border-[var(--card-border)] rounded-full pl-9 ${searchQuery ? "pr-8" : "pr-4"} py-2 outline-none transition-all duration-300 w-full md:w-48 md:focus:w-72 placeholder:text-foreground-tertiary focus:border-[var(--foreground-tertiary)]`}
             />
             {searchQuery && (
               <button
@@ -359,8 +359,8 @@ export default function Home() {
           <thead>
             <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
               <SortTh col="model" current={sortCol} asc={sortAsc} onSort={toggleSort} align="left" className="pl-4">Model</SortTh>
-              <SortTh col="released" current={sortCol} asc={sortAsc} onSort={toggleSort} align="left">Released</SortTh>
-              <SortTh col="creator" current={sortCol} asc={sortAsc} onSort={toggleSort} align="left">Creator</SortTh>
+              <SortTh col="released" current={sortCol} asc={sortAsc} onSort={toggleSort} align="left" className="hidden md:table-cell">Released</SortTh>
+              <SortTh col="creator" current={sortCol} asc={sortAsc} onSort={toggleSort} align="left" className="hidden md:table-cell">Creator</SortTh>
               <SortTh col="score" current={sortCol} asc={sortAsc} onSort={toggleSort} align="right">Intelligence</SortTh>
               <SortTh col="cost" current={sortCol} asc={sortAsc} onSort={toggleSort} align="right">Cost</SortTh>
               <SortTh col="speed" current={sortCol} asc={sortAsc} onSort={toggleSort} align="right" className="pr-4">Speed</SortTh>
@@ -378,12 +378,15 @@ export default function Home() {
                   style={isLast ? undefined : { borderBottom: "1px solid var(--card-border)" }}
                 >
                   <td className="py-3 pr-3 pl-4 font-medium text-foreground">
-                    {model.name}
+                    <span className="flex items-center gap-1.5">
+                      <BrandIcon id={model.labId} size={14} className="shrink-0 md:hidden" />
+                      {model.name}
+                    </span>
                   </td>
-                  <td className="py-3 pr-3 text-foreground-secondary">
+                  <td className="py-3 pr-3 text-foreground-secondary hidden md:table-cell">
                     {formatMonthYear(model.releaseDate)}
                   </td>
-                  <td className="py-3 pr-3">
+                  <td className="py-3 pr-3 hidden md:table-cell">
                     <span className="flex items-center gap-1.5 text-foreground-secondary">
                       <BrandIcon id={model.labId} size={14} className="shrink-0" />
                       {lab?.name}

@@ -3,7 +3,7 @@ interface IconDef {
   paths: Array<{ d: string; opacity?: number }>;
 }
 
-const ICONS: Record<string, IconDef> = {
+export const ICONS: Record<string, IconDef> = {
   anthropic: {
     viewBox: "0 0 16 16",
     paths: [
@@ -119,7 +119,7 @@ const ICONS: Record<string, IconDef> = {
 };
 
 // Provider ID → icon ID mapping for providers that share a lab's icon
-const PROVIDER_ALIAS: Record<string, string> = {
+export const PROVIDER_ALIAS: Record<string, string> = {
   vertex: "google",
   azure: "microsoft",
 };

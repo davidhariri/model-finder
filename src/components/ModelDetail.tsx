@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Model, bestCost, bestSpeed, blendedCost, formatContext, formatParams, getLab, getProvider, overallScore } from "@/data/models";
-import BrandIcon from "./BrandIcon";
+import BrandIcon, { ICONS, PROVIDER_ALIAS } from "./BrandIcon";
 
 type Phase = "enter" | "open" | "closing";
 
@@ -85,9 +85,9 @@ export default function ModelDetail({
   const speedProviders = [...model.providers].sort((a, b) => b.tokensPerSecond - a.tokensPerSecond);
   const costProviders = [...model.providers].sort((a, b) => blendedCost(a) - blendedCost(b));
   const maxSpeed = Math.max(...model.providers.map((p) => p.tokensPerSecond));
-  const maxCost = Math.max(...model.providers.map((p) => blendedCost(p)));
+  const maxCostVal = Math.max(...model.providers.map((p) => Math.max(p.costPer1MInput, p.costPer1MOutput)));
 
-  const barData: { label: string; pct: number; display: string; providerId?: string }[] =
+  const barData: { label: string; pct: number; display: string; providerId?: string; costType?: "input" | "output" }[] =
     selectedTile === "intelligence"
       ? [
           ...(model.scores.coding != null ? [{ label: "Coding (SWE-Bench)", pct: model.scores.coding, display: model.scores.coding.toString() }] : []),
@@ -106,19 +106,22 @@ export default function ModelDetail({
             display: `${p.tokensPerSecond} tok/s`,
             providerId: p.providerId,
           }))
-        : costProviders.map((p) => ({
-            label: getProvider(p.providerId)?.name ?? p.providerId,
-            pct: (blendedCost(p) / maxCost) * 100,
-            display: `$${fmtCost(blendedCost(p))}`,
-            providerId: p.providerId,
-          }));
+        : costProviders.flatMap((p) => {
+            const name = getProvider(p.providerId)?.name ?? p.providerId;
+            return [
+              { label: `${name} — Input`, pct: (p.costPer1MInput / maxCostVal) * 100, display: `$${fmtCost(p.costPer1MInput)}`, providerId: p.providerId, costType: "input" as const },
+              { label: `${name} — Output`, pct: (p.costPer1MOutput / maxCostVal) * 100, display: `$${fmtCost(p.costPer1MOutput)}`, providerId: p.providerId, costType: "output" as const },
+            ];
+          });
 
-  const barGradient =
+  const barGradient = (costType?: "input" | "output") =>
     selectedTile === "intelligence"
       ? "linear-gradient(90deg, var(--bar-fill-start), var(--bar-fill-end))"
       : selectedTile === "speed"
         ? "linear-gradient(90deg, var(--speed-bar-start), var(--speed-bar-end))"
-        : "linear-gradient(90deg, var(--cost-bar-start), var(--cost-bar-end))";
+        : costType === "output"
+          ? "linear-gradient(90deg, var(--cost-bar-output-start, var(--cost-bar-start)), var(--cost-bar-output-end, var(--cost-bar-end)))"
+          : "linear-gradient(90deg, var(--cost-bar-start), var(--cost-bar-end))";
 
 
   function toggleProvSort(col: string) {
@@ -148,8 +151,9 @@ export default function ModelDetail({
       })
     : [...model.providers];
 
-  const modalWidth = Math.min(720, window.innerWidth - 48);
-  const targetLeft = (window.innerWidth - modalWidth) / 2;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+  const modalWidth = isMobile ? window.innerWidth : Math.min(720, window.innerWidth - 48);
+  const targetLeft = isMobile ? 0 : (window.innerWidth - modalWidth) / 2;
 
   const isOpen = phase === "open";
   const isClosing = phase === "closing";
@@ -163,11 +167,11 @@ export default function ModelDetail({
         style={{
           position: "fixed",
           zIndex: 70,
-          top: 32,
+          top: isMobile ? 0 : 32,
           left: targetLeft,
           width: modalWidth,
-          height: "calc(100vh - 64px)",
-          borderRadius: 32,
+          height: isMobile ? "100vh" : "calc(100vh - 64px)",
+          borderRadius: isMobile ? 0 : 32,
           background: "var(--card-bg)",
           boxShadow: "0 24px 80px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.04)",
           overflowY: "auto",
@@ -182,15 +186,75 @@ export default function ModelDetail({
       >
         {/* Sticky header */}
         <div
-          className="sticky top-0 z-10 px-6 pt-8 pb-14"
+          className="sticky top-0 z-10 px-4 sm:px-6 pt-8 pb-14 overflow-hidden"
           style={{
             background: "linear-gradient(to bottom, var(--card-bg) 50%, color-mix(in srgb, var(--card-bg) 50%, transparent) 80%, transparent)",
-            borderRadius: "32px 32px 0 0",
+            borderRadius: isMobile ? 0 : "32px 32px 0 0",
           }}
         >
-          <div className="flex items-start justify-between">
+          {/* Monogram: continuous gradient masked by tiled icon shapes */}
+          <div
+            className="absolute inset-0 pointer-events-none overflow-hidden"
+            style={{
+              borderRadius: isMobile ? 0 : "32px 32px 0 0",
+              maskImage: "linear-gradient(to bottom, black 0%, black 15%, transparent 70%)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 15%, transparent 70%)",
+            }}
+          >
+            {(() => {
+              const resolvedId = PROVIDER_ALIAS[model.labId] || model.labId;
+              const icon = ICONS[resolvedId];
+              if (!icon) return null;
+              const size = 40;
+              const stepX = 58;
+              const stepY = 52;
+              const cols = Math.ceil(1600 / stepX) + 1;
+              const rows = Math.ceil(600 / stepY) + 1;
+              const vbParts = icon.viewBox.split(" ").map(Number);
+              const vbW = vbParts[2] - vbParts[0];
+              const vbH = vbParts[3] - vbParts[1];
+              const svgW = cols * stepX + stepX;
+              const svgH = rows * stepY + stepY;
+              let pathsStr = "";
+              for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                  const x = c * stepX;
+                  const y = r * stepY + (c % 2 === 1 ? stepY * 0.5 : 0);
+                  const scaleX = size / vbW;
+                  const scaleY = size / vbH;
+                  for (const p of icon.paths) {
+                    pathsStr += `<path d="${p.d}" transform="translate(${x},${y}) scale(${scaleX},${scaleY})"${p.opacity != null ? ` opacity="${p.opacity}"` : ""}/>`;
+                  }
+                }
+              }
+              const svgMask = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${svgW}' height='${svgH}'><g fill='white'>${pathsStr}</g></svg>`)}")`;
+              return (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: "-50%",
+                    width: "200%",
+                    height: "200%",
+                    transform: "rotate(-15deg)",
+                    transformOrigin: "center center",
+                    background: "linear-gradient(135deg, #34d399 0%, #22d3ee 20%, #818cf8 40%, #a78bfa 60%, #c084fc 80%, #34d399 100%)",
+                    backgroundSize: "300% 300%",
+                    animation: "holographic-shimmer 12s ease-in-out infinite",
+                    opacity: 0.08,
+                    maskImage: svgMask,
+                    WebkitMaskImage: svgMask,
+                    maskRepeat: "no-repeat",
+                    WebkitMaskRepeat: "no-repeat",
+                    maskPosition: "center",
+                    WebkitMaskPosition: "center",
+                  }}
+                />
+              );
+            })()}
+          </div>
+          <div className="flex items-start justify-between relative">
             <div>
-              <h2 className="text-4xl font-semibold tracking-tight text-foreground mb-4">{model.name}</h2>
+              <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight text-foreground mb-4">{model.name}</h2>
               <p className="text-[15px] text-foreground-secondary flex items-center gap-1.5 mt-1">
                 Created by
                 <a
@@ -224,7 +288,7 @@ export default function ModelDetail({
           </div>
         </div>
 
-        <div className="px-6 pb-40">
+        <div className="px-4 sm:px-6 pb-40">
           {/* Key specs */}
           <div className="mt-6 mb-8 grid grid-cols-3 gap-3">
             <SpecTile
@@ -254,38 +318,42 @@ export default function ModelDetail({
           <div
             style={{
               minHeight: Math.max(4, model.providers.length) * 30,
-              transform: tileTransitioning
-                ? tileSlideDir === "right" ? "translateX(24px)" : "translateX(-24px)"
-                : "translateX(0)",
+              transform: "translateX(0)",
               opacity: tileTransitioning ? 0 : 1,
               transition: `transform 0.35s ${EASING}, opacity 0.2s ease`,
             }}
           >
-          <div className="space-y-2">
+          <div className="space-y-3 sm:space-y-2">
             {barData.map((s) => (
-              <div key={s.label} className="flex items-center gap-3">
-                <span className="text-[13px] text-foreground-secondary w-40 shrink-0 truncate flex items-center gap-1.5">
-                  {s.providerId && <BrandIcon id={s.providerId} size={14} className="shrink-0" />}
-                  {s.label}
-                </span>
-                <div
-                  className="flex-1 h-3.5 rounded-full overflow-hidden"
-                  style={{ background: "var(--surface)" }}
-                >
+              <div key={s.label}>
+                <div className="flex items-center gap-3">
+                  <span className="hidden sm:flex text-[13px] text-foreground-secondary w-40 shrink-0 truncate items-center gap-1.5">
+                    {s.providerId && <BrandIcon id={s.providerId} size={14} className="shrink-0" />}
+                    {s.label}
+                  </span>
                   <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${s.pct}%`,
-                      background: barGradient,
-                      transition: visible
-                        ? `width 0.6s ${EASING} 0.2s`
-                        : "none",
-                    }}
-                  />
+                    className="flex-1 h-3.5 rounded-full overflow-hidden"
+                    style={{ background: "var(--surface)" }}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${s.pct}%`,
+                        background: barGradient(s.costType),
+                        transition: visible
+                          ? `width 0.6s ${EASING} 0.2s`
+                          : "none",
+                      }}
+                    />
+                  </div>
+                  <span className="text-[13px] font-semibold text-foreground w-20 sm:w-24 shrink-0 text-right">
+                    {s.display}
+                  </span>
                 </div>
-                <span className="text-[13px] font-semibold text-foreground w-24 shrink-0 text-right">
-                  {s.display}
-                </span>
+                <div className="sm:hidden flex items-center gap-1 mt-1 text-[11px] text-foreground-secondary truncate">
+                  {s.providerId && <BrandIcon id={s.providerId} size={12} className="shrink-0" />}
+                  {s.label}
+                </div>
               </div>
             ))}
           </div>
@@ -297,8 +365,8 @@ export default function ModelDetail({
             <thead>
               <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
                 <SortTh col="provider" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="left">Provider</SortTh>
-                <SortTh col="input" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Input</SortTh>
-                <SortTh col="output" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Output</SortTh>
+                <SortTh col="input" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right" className="hidden sm:table-cell">Input</SortTh>
+                <SortTh col="output" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right" className="hidden sm:table-cell">Output</SortTh>
                 <SortTh col="blended" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Blended</SortTh>
                 <SortTh col="speed" current={provSortCol} asc={provSortAsc} onSort={toggleProvSort} align="right">Speed</SortTh>
               </tr>
@@ -324,10 +392,10 @@ export default function ModelDetail({
                         {provider?.name}
                       </a>
                     </td>
-                    <td className="py-3 text-right font-medium">
+                    <td className="py-3 text-right font-medium hidden sm:table-cell">
                       ${fmtCost(p.costPer1MInput)}
                     </td>
-                    <td className="py-3 text-right font-medium">
+                    <td className="py-3 text-right font-medium hidden sm:table-cell">
                       ${fmtCost(p.costPer1MOutput)}
                     </td>
                     <td className="py-3 text-right font-medium">
@@ -433,7 +501,7 @@ function SpecTile({ label, value, desc, selected, onClick }: {
       style={{ opacity: selected ? 1 : 0.4 }}
     >
       <p className="text-[13px] font-medium text-foreground-secondary">{label}</p>
-      <p className="text-2xl font-semibold tracking-tight text-foreground leading-tight mt-0.5">
+      <p className="text-lg sm:text-2xl font-semibold tracking-tight text-foreground leading-tight mt-0.5">
         {value}
       </p>
       <p className="text-[13px] font-medium text-foreground-secondary mt-0.5">{desc}</p>
@@ -450,13 +518,14 @@ function SpecRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SortTh<T extends string>({ col, current, asc, onSort, align, children }: {
+function SortTh<T extends string>({ col, current, asc, onSort, align, children, className }: {
   col: T;
   current: T | null;
   asc: boolean;
   onSort: (col: T) => void;
   align: "left" | "right";
   children: React.ReactNode;
+  className?: string;
 }) {
   const active = current === col;
   return (
@@ -464,7 +533,7 @@ function SortTh<T extends string>({ col, current, asc, onSort, align, children }
       onClick={() => onSort(col)}
       className={`text-${align} text-[12px] font-medium pb-2 cursor-pointer select-none transition-colors ${
         active ? "text-foreground" : "text-foreground-tertiary hover:text-foreground-secondary"
-      }`}
+      } ${className ?? ""}`}
     >
       {children}
     </th>

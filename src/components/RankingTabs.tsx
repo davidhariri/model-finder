@@ -52,7 +52,8 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
     cost: "Blended cost per 1M tokens (USD)",
   };
   const isCost = tab === "cost";
-  const margin = { top: 8, right: 80, bottom: 36, left: 160 };
+  const compact = width < 500;
+  const margin = { top: 8, right: compact ? 48 : 80, bottom: 36, left: compact ? 8 : 160 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -76,7 +77,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
   const yScale = scaleBand({
     domain: yDomain,
     range: [0, innerHeight],
-    padding: 0.35,
+    padding: compact ? 0.45 : 0.35,
   });
 
   const xScale = scaleLinear({
@@ -164,24 +165,35 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
             const barW = progress === 1 ? targetWidth : 0;
             return (
               <Group key={model.id}>
-                <foreignObject
-                  x={-margin.left}
-                  y={y + barHeight / 2 - 10}
-                  width={margin.left - 12}
-                  height={20}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, height: "100%", color: "var(--foreground-secondary)" }}>
-                    <BrandIcon id={model.labId} size={14} className="shrink-0" />
-                    <span style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: "var(--foreground-secondary)",
-                      whiteSpace: "nowrap",
-                    }}>
-                      {model.name}
-                    </span>
-                  </div>
-                </foreignObject>
+                {compact ? (
+                  <foreignObject
+                    x={0}
+                    y={y + barHeight + 2}
+                    width={innerWidth}
+                    height={18}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--foreground-secondary)" }}>
+                      <BrandIcon id={model.labId} size={12} className="shrink-0" />
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "var(--foreground-secondary)", whiteSpace: "nowrap" }}>
+                        {model.name}
+                      </span>
+                    </div>
+                  </foreignObject>
+                ) : (
+                  <foreignObject
+                    x={-margin.left}
+                    y={y + barHeight / 2 - 10}
+                    width={margin.left - 12}
+                    height={20}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, height: "100%", color: "var(--foreground-secondary)" }}>
+                      <BrandIcon id={model.labId} size={14} className="shrink-0" />
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--foreground-secondary)", whiteSpace: "nowrap" }}>
+                        {model.name}
+                      </span>
+                    </div>
+                  </foreignObject>
+                )}
                 <Bar
                   x={0}
                   y={y}
@@ -200,7 +212,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
                   y={y + barHeight / 2}
                   verticalAnchor="middle"
                   fill="var(--foreground)"
-                  fontSize={13}
+                  fontSize={compact ? 11 : 13}
                   fontWeight={600}
                   style={{
                     transition: progress === 1 ? "x 0.6s cubic-bezier(0.22, 1, 0.36, 1)" : "none",
@@ -284,10 +296,23 @@ export default function RankingTabs({ models, minScore, onModelClick, onAboutCli
   const [animKey, setAnimKey] = useState(0);
   const [slideDir, setSlideDir] = useState<"left" | "right">("right");
   const [transitioning, setTransitioning] = useState(false);
+  const [compact, setCompact] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      setCompact((entries[0]?.contentRect.width ?? 999) < 500);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const barCount = Math.min(MODEL_COUNT, models.length);
-  const chartHeight = barCount * 44 + 16 + 36; // bars + bottom axis area
+  const chartHeight = compact
+    ? barCount * 60 + 16 + 36
+    : barCount * 44 + 16 + 36;
 
   const switchTab = useCallback(
     (next: Tab) => {
@@ -309,18 +334,14 @@ export default function RankingTabs({ models, minScore, onModelClick, onAboutCli
     [tab]
   );
 
-  const slideTransform = transitioning
-    ? slideDir === "right"
-      ? "translateX(24px)"
-      : "translateX(-24px)"
-    : "translateX(0)";
+  const slideTransform = "translateX(0)";
 
   return (
     <div>
-      <div className="flex gap-6 mb-6 justify-center">
+      <div className="flex gap-4 md:gap-6 mb-6 justify-center">
         <button
           onClick={() => switchTab("intelligence")}
-          className={`text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
+          className={`text-lg md:text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
             tab === "intelligence"
               ? "text-foreground"
               : "text-foreground-tertiary hover:text-foreground-secondary"
@@ -330,7 +351,7 @@ export default function RankingTabs({ models, minScore, onModelClick, onAboutCli
         </button>
         <button
           onClick={() => switchTab("speed")}
-          className={`text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
+          className={`text-lg md:text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
             tab === "speed"
               ? "text-foreground"
               : "text-foreground-tertiary hover:text-foreground-secondary"
@@ -340,7 +361,7 @@ export default function RankingTabs({ models, minScore, onModelClick, onAboutCli
         </button>
         <button
           onClick={() => switchTab("cost")}
-          className={`text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
+          className={`text-lg md:text-2xl font-semibold tracking-tight transition-colors duration-200 cursor-pointer ${
             tab === "cost"
               ? "text-foreground"
               : "text-foreground-tertiary hover:text-foreground-secondary"
