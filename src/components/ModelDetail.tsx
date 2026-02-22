@@ -227,7 +227,7 @@ export default function ModelDetail({
                   }
                 }
               }
-              const svgMask = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${svgW}' height='${svgH}'><g fill='white'>${pathsStr}</g></svg>`)}")`;
+              const svgMask = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${svgW}' height='${svgH}'><g fill='white' fill-rule='evenodd'>${pathsStr}</g></svg>`)}")`;
               return (
                 <div
                   style={{
