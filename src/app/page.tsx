@@ -235,7 +235,7 @@ export default function Home() {
         </h1>
         <div className="flex flex-col items-center gap-5 max-w-3xl mx-auto">
           {/* Sliders: stacked on mobile, 3-col on desktop */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl">
             <MinScoreSlider value={minScore} onChange={setMinScore} />
             <div className="hidden md:block">
               <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={500} label="Minimum Best Speed" unit="tok/s" />
