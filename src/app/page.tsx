@@ -228,11 +228,28 @@ export default function Home() {
       </div>
 
     <main className="mx-auto max-w-5xl px-4 md:px-6 pt-8 pb-16 md:pt-12 md:pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Model Browser",
+          "url": "https://models.dhariri.com",
+          "description": "Compare LLM models by intelligence benchmarks, API pricing, and speed. Filter and sort GPT, Claude, Gemini, Llama, and more.",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Any",
+          "offers": { "@type": "Offer", "price": "0" },
+          "author": { "@type": "Person", "name": "David Hariri", "url": "https://dhariri.com" },
+        }) }}
+      />
       {/* Hero + Inline Filters */}
       <header className="mb-10 md:mb-14 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl mb-8 md:mb-10">
           Model Browser
         </h1>
+        <p className="sr-only">
+          Compare large language models side by side. Filter GPT-4o, Claude, Gemini, Llama, Mistral, DeepSeek, and Qwen models by intelligence benchmarks like GPQA Diamond, SWE-Bench, and MMLU-Pro. Sort by API pricing, tokens per second, and overall score. Find the best LLM for your use case.
+        </p>
         <div className="flex flex-col items-center gap-5 max-w-3xl mx-auto">
           {/* Sliders: stacked on mobile, 3-col on desktop */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl">

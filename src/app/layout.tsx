@@ -14,24 +14,27 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://models.dhariri.com"),
-  title: "Model Browser — LLM Intelligence, Speed & Cost Compared",
+  title: "Compare LLM Models — Benchmarks, Pricing & Speed | Model Browser",
   description:
-    "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
-  keywords: ["LLM", "AI models", "benchmark", "GPT", "Claude", "Gemini", "comparison", "cost", "speed", "intelligence"],
+    "Compare GPT, Claude, Gemini, Llama and more. Filter AI models by intelligence benchmarks, API pricing, and tokens per second. Updated weekly.",
+  keywords: ["LLM comparison", "AI model benchmarks", "LLM pricing", "GPT vs Claude", "model speed", "tokens per second", "GPQA", "SWE-Bench", "MMLU", "AI API cost"],
   authors: [{ name: "David Hariri", url: "https://dhariri.com" }],
   robots: { index: true, follow: true },
+  alternates: { canonical: "https://models.dhariri.com" },
   openGraph: {
-    title: "Model Browser",
+    title: "Compare LLM Models — Benchmarks, Pricing & Speed",
     description:
-      "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
+      "Compare GPT, Claude, Gemini, Llama and more. Filter AI models by intelligence benchmarks, API pricing, and tokens per second.",
     type: "website",
     siteName: "Model Browser",
+    images: [{ url: "https://models.dhariri.com/og.png", width: 2358, height: 1524 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Model Browser",
+    title: "Compare LLM Models — Benchmarks, Pricing & Speed",
     description:
-      "Compare LLM performance, cost, and speed. Discover great models beyond the big names.",
+      "Compare GPT, Claude, Gemini, Llama and more. Filter AI models by intelligence benchmarks, API pricing, and tokens per second.",
+    images: ["https://models.dhariri.com/og.png"],
   },
 };
 
