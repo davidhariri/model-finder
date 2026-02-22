@@ -11,12 +11,11 @@ import BrandIcon from "@/components/BrandIcon";
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export default function Home() {
-  const [minScore, setMinScore] = useState(0);
-  const [minSpeedVal, setMinSpeedVal] = useState(0);
-  const [maxCostVal, setMaxCostVal] = useState(50);
+  const [minScore, setMinScore] = useState(50);
+  const [minSpeedVal, setMinSpeedVal] = useState(100);
+  const [maxCostVal, setMaxCostVal] = useState(20);
   const [requireVision, setRequireVision] = useState(false);
   const [requireOpenWeights, setRequireOpenWeights] = useState(false);
-  const [optionsOpen, setOptionsOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [closingModal, setClosingModal] = useState(false);
@@ -24,32 +23,21 @@ export default function Home() {
   const [sortAsc, setSortAsc] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const aboutPanelRef = useRef<HTMLDivElement>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!optionsOpen && !aboutOpen) return;
+    if (!aboutOpen) return;
     function handleClick(e: MouseEvent) {
-      if (optionsOpen) {
-        if (
-          panelRef.current?.contains(e.target as Node) ||
-          buttonRef.current?.contains(e.target as Node)
-        ) return;
-        setOptionsOpen(false);
-      }
-      if (aboutOpen) {
-        if (
-          aboutPanelRef.current?.contains(e.target as Node) ||
-          aboutButtonRef.current?.contains(e.target as Node)
-        ) return;
-        setAboutOpen(false);
-      }
+      if (
+        aboutPanelRef.current?.contains(e.target as Node) ||
+        aboutButtonRef.current?.contains(e.target as Node)
+      ) return;
+      setAboutOpen(false);
     }
     document.addEventListener("pointerdown", handleClick);
     return () => document.removeEventListener("pointerdown", handleClick);
-  }, [optionsOpen, aboutOpen]);
+  }, [aboutOpen]);
 
   const openModel = useCallback((model: Model) => {
     setSelectedModel(model);
@@ -144,61 +132,12 @@ export default function Home() {
         className="fixed inset-0 z-40"
         style={{
           background: "color-mix(in srgb, var(--background) 60%, transparent)",
-          opacity: optionsOpen || aboutOpen ? 1 : 0,
-          pointerEvents: optionsOpen || aboutOpen ? "auto" : "none",
+          opacity: aboutOpen ? 1 : 0,
+          pointerEvents: aboutOpen ? "auto" : "none",
           transition: `opacity 0.3s ${EASING}`,
         }}
-        onClick={() => { setOptionsOpen(false); setAboutOpen(false); }}
+        onClick={() => setAboutOpen(false)}
       />
-
-      {/* Options panel */}
-      <div
-        ref={panelRef}
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{
-          pointerEvents: optionsOpen ? "auto" : "none",
-        }}
-        onClick={() => setOptionsOpen(false)}
-      >
-        <div
-          className="rounded-3xl px-6 md:px-8 pt-14 pb-8 max-w-[calc(100vw-32px)]"
-          style={{
-            background: "var(--card-bg)",
-            opacity: optionsOpen ? 1 : 0,
-            transform: optionsOpen ? "scale(1)" : "scale(0.9)",
-            pointerEvents: optionsOpen ? "auto" : "none",
-            transition: optionsOpen
-              ? "opacity 0.3s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)"
-              : `opacity 0.2s ease, transform 0.2s ${EASING}`,
-            boxShadow: "0 24px 80px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.04)",
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex flex-col items-center gap-6" style={{ minHeight: 164 }}>
-            <MinScoreSlider value={minScore} onChange={setMinScore} empty={filtered.length === 0} />
-            <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={3000} curve={2.5} empty={filtered.length === 0} label="Minimum Best Speed" unit="tok/s" />
-            <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={0} max={50} curve={2.5} empty={filtered.length === 0} label="Maximum Blended Cost" prefix="$" unit="/1M" />
-            <div className="flex gap-3">
-              <FilterPill label={requireVision ? "Only Vision" : "Vision"} active={requireVision} color="magenta" onClick={() => setRequireVision((v) => !v)} icon={<EyeIcon />} />
-              <FilterPill label={requireOpenWeights ? "Only Open" : "Open Weights"} active={requireOpenWeights} color="green" onClick={() => setRequireOpenWeights((v) => !v)} icon={<UnlockedIcon />} />
-            </div>
-            <div
-              style={{
-                opacity: minScore !== 0 || minSpeedVal !== 0 || maxCostVal < 50 || requireVision || requireOpenWeights ? 1 : 0,
-                transition: `opacity 0.25s ${EASING}`,
-                pointerEvents: minScore !== 0 || minSpeedVal !== 0 || maxCostVal < 50 || requireVision || requireOpenWeights ? "auto" : "none",
-              }}
-            >
-              <button
-                onClick={() => { setMinScore(0); setMinSpeedVal(0); setMaxCostVal(50); setRequireVision(false); setRequireOpenWeights(false); }}
-                className="text-sm font-medium text-sys-red hover:bg-sys-red/10 active:bg-sys-red active:text-[var(--card-bg)] transition-colors cursor-pointer h-[44px] px-6 rounded-full"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* About panel */}
       <div
@@ -264,8 +203,6 @@ export default function Home() {
               <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline decoration-foreground/20"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>@davidhariri</a>
             </p>
             <p className="text-foreground-tertiary pt-2">
-              Last updated February 20, 2026
-              <span className="mx-1.5">&middot;</span>
               <a href="https://github.com/davidhariri/model-finder/issues" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20 hover:text-foreground-secondary transition-colors">Report an issue</a>
             </p>
           </div>
@@ -273,61 +210,42 @@ export default function Home() {
       </div>
 
     <main className="mx-auto max-w-5xl px-4 md:px-6 pt-8 pb-16 md:pt-12 md:pb-24">
-      {/* Hero */}
-      <header className="mb-12 md:mb-20 text-center">
-        <div className="mb-6 flex items-center justify-center gap-1">
-          <button
-            ref={buttonRef}
-            onClick={() => { setOptionsOpen((o) => !o); setAboutOpen(false); }}
-            className={`text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
-              (() => {
-                const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (maxCostVal < 50 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
-                return count > 0
-                  ? "text-accent"
-                  : optionsOpen
-                    ? "text-foreground"
-                    : "text-foreground-tertiary hover:text-foreground-secondary";
-              })()
-            }`}
-          >
-            {(() => {
-              const count = (minScore !== 0 ? 1 : 0) + (minSpeedVal !== 0 ? 1 : 0) + (maxCostVal < 50 ? 1 : 0) + (requireVision ? 1 : 0) + (requireOpenWeights ? 1 : 0);
-              return count > 0 ? `${count} Option${count > 1 ? "s" : ""} Applied` : "Options";
-            })()}
-          </button>
-          <button
-            ref={aboutButtonRef}
-            onClick={() => { setAboutOpen((o) => !o); setOptionsOpen(false); }}
-            className={`text-sm font-semibold tracking-tight cursor-pointer rounded-full px-5 py-2 transition-colors duration-200 ${
-              aboutOpen
-                ? "text-foreground"
-                : "text-foreground-tertiary hover:text-foreground-secondary"
-            }`}
-          >
-            About
-          </button>
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+      {/* Hero + Inline Filters */}
+      <header className="mb-10 md:mb-14 text-center">
+        <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl mb-8 md:mb-10">
           Model Browser
         </h1>
+        <div className="flex flex-col items-center gap-5 max-w-3xl mx-auto">
+          {/* Sliders: stacked on mobile, 3-col on desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+            <MinScoreSlider value={minScore} onChange={setMinScore} empty={filtered.length === 0} />
+            <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={500} empty={filtered.length === 0} label="Minimum Best Speed" unit="tok/s" />
+            <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={0} max={50} empty={filtered.length === 0} label="Maximum Blended Cost" prefix="$" unit="/1M" />
+          </div>
+          {/* Pills + Reset */}
+          <div className="flex gap-3 items-center">
+            <FilterPill label="Only Vision" active={requireVision} color="magenta" onClick={() => setRequireVision((v) => !v)} icon={<EyeIcon />} />
+            <FilterPill label="Only Open Weights" active={requireOpenWeights} color="green" onClick={() => setRequireOpenWeights((v) => !v)} icon={<UnlockedIcon />} />
+          </div>
+        </div>
       </header>
 
       {/* Intelligence by Cost/Speed scatter */}
       <section className="mb-16 md:mb-24">
-        <CostPerformanceScatter models={filtered} onModelClick={openModel} onAboutClick={() => { setAboutOpen(true); setOptionsOpen(false); }} />
+        <CostPerformanceScatter models={filtered} onModelClick={openModel} onAboutClick={() => setAboutOpen(true)} />
       </section>
 
       {/* Rankings — tabbed Intelligence / Speed / Cost */}
       <section className="mb-16 md:mb-24">
-        <RankingTabs models={filtered} minScore={minScore} onModelClick={openModel} onAboutClick={() => { setAboutOpen(true); setOptionsOpen(false); }} />
+        <RankingTabs models={filtered} minScore={minScore} onModelClick={openModel} onAboutClick={() => setAboutOpen(true)} />
       </section>
 
       {/* All Models table */}
       <section className="mb-16 md:mb-24">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground text-center mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground text-center md:text-left">
           All Models
         </h2>
-        <div className="flex justify-center mb-6">
           <div className="relative" style={{ transition: "opacity 0.3s ease" }}>
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-tertiary pointer-events-none" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="7" cy="7" r="4.5" />
@@ -404,6 +322,18 @@ export default function Home() {
           </tbody>
         </table>
       </section>
+
+      {/* Footer */}
+      <footer className="text-center pb-12 space-y-2">
+        <button
+          ref={aboutButtonRef}
+          onClick={() => setAboutOpen(true)}
+          className="text-sm text-foreground-tertiary hover:text-foreground-secondary transition-colors cursor-pointer"
+        >
+          About
+        </button>
+        <p className="text-xs text-foreground-tertiary">Last updated February 22, 2026</p>
+      </footer>
 
     </main>
 

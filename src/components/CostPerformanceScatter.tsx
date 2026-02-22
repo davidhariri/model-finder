@@ -9,10 +9,9 @@ import { useTooltip, TooltipWithBounds } from "@visx/tooltip";
 import { ParentSize } from "@visx/responsive";
 import {
   Model,
-  ModelProvider,
-  blendedCost,
+  bestCost,
+  bestSpeed,
   getLab,
-  getProvider,
   overallScore,
 } from "@/data/models";
 import BrandIcon from "@/components/BrandIcon";
@@ -33,7 +32,6 @@ type ScatterMode = "cost" | "speed";
 
 interface TooltipPoint {
   model: Model;
-  provider: ModelProvider;
 }
 
 const POINT_RADIUS_DEFAULT = 7;
@@ -128,27 +126,18 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
     }
   }
 
-  // Flatten models into individual model+provider points
-  const points = models.flatMap((model) =>
-    model.providers.map((provider) => ({ model, provider }))
-  );
+  // One dot per model using best provider for the current mode
+  const hoveredId = tooltipData?.model.id ?? null;
 
-  // Unique key for a point
-  const pointKey = (m: Model, p: ModelProvider) => `${m.id}::${p.providerId}`;
-  const hoveredKey = tooltipData ? pointKey(tooltipData.model, tooltipData.provider) : null;
-
-  // Layout all points
-  const layoutItems = points.map(({ model, provider }) => {
+  const layoutItems = models.map((model) => {
     const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
     const cx = isCost
-      ? costXScale(blendedCost(provider))
-      : speedXScale(provider.tokensPerSecond);
-    const key = pointKey(model, provider);
-    const isHovered = key === hoveredKey;
+      ? costXScale(bestCost(model))
+      : speedXScale(bestSpeed(model));
+    const isHovered = model.id === hoveredId;
     const isHighlighted = !tooltipOpen || isHovered;
-    return { model, provider, cx, cy, key, isHovered, isHighlighted };
+    return { model, cx, cy, key: model.id, isHovered, isHighlighted };
   }).sort((a, b) => {
-    // Hovered always on top
     if (a.isHovered !== b.isHovered) return a.isHovered ? 1 : -1;
     return 0;
   });
@@ -232,7 +221,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
           </text>
 
           {/* Pass 1: hit areas + points */}
-          {layoutItems.map(({ model, provider, cx, cy, key, isHighlighted }) => (
+          {layoutItems.map(({ model, cx, cy, key, isHighlighted }) => (
             <g key={key}>
               {/* Invisible larger hit area */}
               <circle
@@ -243,7 +232,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
                 onMouseMove={(e) => {
                   const svgRect = e.currentTarget.closest("svg")?.getBoundingClientRect();
                   showTooltip({
-                    tooltipData: { model, provider },
+                    tooltipData: { model },
                     tooltipLeft: e.clientX - (svgRect?.left ?? 0),
                     tooltipTop: e.clientY - (svgRect?.top ?? 0) + 16,
                   });
@@ -261,8 +250,6 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
                 cy={cy}
                 r={pointRadius}
                 fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
-                stroke="var(--border)"
-                strokeWidth={1}
                 pointerEvents="none"
                 style={{
                   opacity: isHighlighted ? 1 : 0.3,
@@ -328,26 +315,18 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
           </div>
           <div className="mt-3 space-y-1.5 text-[13px]">
             <div className="flex justify-between gap-6">
-              <span className="opacity-60">Provider</span>
-              <span className="font-medium flex items-center gap-1.5">
-                <BrandIcon id={tooltipData.provider.providerId} size={12} />
-                {getProvider(tooltipData.provider.providerId)?.name}
-              </span>
-            </div>
-            <div className="border-t border-[var(--foreground)]/10" />
-            <div className="flex justify-between gap-6">
               <span className="opacity-60">Intelligence</span>
               <span className="font-medium tabular-nums">{overallScore(tooltipData.model)}</span>
             </div>
             <div className="border-t border-[var(--foreground)]/10" />
             <div className="flex justify-between gap-6">
-              <span className="opacity-60">Speed</span>
-              <span className="font-medium tabular-nums">{tooltipData.provider.tokensPerSecond} <span className="opacity-50 font-normal">tok/s</span></span>
+              <span className="opacity-60">Best Speed</span>
+              <span className="font-medium tabular-nums">{bestSpeed(tooltipData.model)} <span className="opacity-50 font-normal">tok/s</span></span>
             </div>
             <div className="border-t border-[var(--foreground)]/10" />
             <div className="flex justify-between gap-6">
-              <span className="opacity-60">Blended Cost</span>
-              <span className="font-medium tabular-nums">${blendedCost(tooltipData.provider).toFixed(2)} <span className="opacity-50 font-normal">/1M</span></span>
+              <span className="opacity-60">Lowest Blended Cost</span>
+              <span className="font-medium tabular-nums">${bestCost(tooltipData.model).toFixed(2)} <span className="opacity-50 font-normal">/1M</span></span>
             </div>
           </div>
         </TooltipWithBounds>

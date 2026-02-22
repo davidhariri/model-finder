@@ -261,7 +261,7 @@ export default function ModelDetail({
                   href={lab?.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 hover:text-accent transition-colors"
+                  className="flex items-center gap-1.5 underline decoration-foreground/20 hover:text-foreground transition-colors"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <BrandIcon id={model.labId} size={16} />
@@ -385,7 +385,7 @@ export default function ModelDetail({
                         href={provider?.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 font-medium text-foreground hover:text-accent transition-colors"
+                        className="flex items-center gap-1.5 font-medium text-foreground underline decoration-foreground/20 hover:text-foreground transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <BrandIcon id={p.providerId} size={14} className="shrink-0" />
@@ -423,7 +423,7 @@ export default function ModelDetail({
                 <td className="py-2.5 text-foreground-secondary">Released</td>
                 <td className="py-2.5 text-right font-medium text-foreground">
                   {model.releaseUrl ? (
-                    <a href={model.releaseUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors" onClick={(e) => e.stopPropagation()}>
+                    <a href={model.releaseUrl} target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                       {formatDate(model.releaseDate)}
                     </a>
                   ) : formatDate(model.releaseDate)}

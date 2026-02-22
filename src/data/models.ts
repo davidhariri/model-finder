@@ -194,6 +194,7 @@ export const models: Model[] = [
     scores: { coding: 33, reasoning: 51, reasoningHle: 3, math: 6, mathBenchmark: "AIME 2025", general: 73, multimodal: 54, elo: 1346 },
     providers: [
       { providerId: "openai", costPer1MInput: 2.50, costPer1MOutput: 10.00, costPer1MCachedInput: 1.25, tokensPerSecond: 134 },
+      { providerId: "azure", costPer1MInput: 2.50, costPer1MOutput: 10.00, costPer1MCachedInput: 1.25, tokensPerSecond: 170 },
     ],
   },
   {
@@ -210,6 +211,7 @@ export const models: Model[] = [
     scores: { codingLive: 23, reasoning: 43, reasoningHle: 4, math: 15, mathBenchmark: "AIME 2025", general: 65, elo: 1318 },
     providers: [
       { providerId: "openai", costPer1MInput: 0.15, costPer1MOutput: 0.60, costPer1MCachedInput: 0.075, tokensPerSecond: 54 },
+      { providerId: "azure", costPer1MInput: 0.15, costPer1MOutput: 0.60, costPer1MCachedInput: 0.075, tokensPerSecond: 54 },
     ],
   },
   {
@@ -226,6 +228,7 @@ export const models: Model[] = [
     scores: { coding: 55, codingLive: 46, reasoning: 67, reasoningHle: 5, math: 35, mathBenchmark: "AIME 2025", general: 81, elo: 1413 },
     providers: [
       { providerId: "openai", costPer1MInput: 2.00, costPer1MOutput: 8.00, costPer1MCachedInput: 0.50, tokensPerSecond: 67 },
+      { providerId: "azure", costPer1MInput: 2.00, costPer1MOutput: 8.00, costPer1MCachedInput: 0.50, tokensPerSecond: 104 },
     ],
   },
   {
@@ -242,6 +245,7 @@ export const models: Model[] = [
     scores: { codingLive: 48, reasoning: 66, reasoningHle: 5, math: 46, mathBenchmark: "AIME 2025", general: 78, elo: 1382 },
     providers: [
       { providerId: "openai", costPer1MInput: 0.40, costPer1MOutput: 1.60, costPer1MCachedInput: 0.10, tokensPerSecond: 70 },
+      { providerId: "azure", costPer1MInput: 0.40, costPer1MOutput: 1.60, costPer1MCachedInput: 0.10, tokensPerSecond: 78 },
     ],
   },
   {
@@ -258,6 +262,7 @@ export const models: Model[] = [
     scores: { codingLive: 33, reasoning: 51, reasoningHle: 4, math: 24, mathBenchmark: "AIME 2025", general: 66, elo: 1322 },
     providers: [
       { providerId: "openai", costPer1MInput: 0.10, costPer1MOutput: 0.40, costPer1MCachedInput: 0.025, tokensPerSecond: 98 },
+      { providerId: "azure", costPer1MInput: 0.10, costPer1MOutput: 0.40, costPer1MCachedInput: 0.025, tokensPerSecond: 142 },
     ],
   },
   {
@@ -275,6 +280,7 @@ export const models: Model[] = [
     scores: { coding: 49, codingLive: 68, reasoning: 75, reasoningHle: 8, general: 84, elo: 1402 },
     providers: [
       { providerId: "openai", costPer1MInput: 15.00, costPer1MOutput: 60.00, costPer1MCachedInput: 7.50, tokensPerSecond: 160 },
+      { providerId: "azure", costPer1MInput: 15.00, costPer1MOutput: 60.00, costPer1MCachedInput: 7.50, tokensPerSecond: 174 },
     ],
   },
   {
@@ -292,6 +298,7 @@ export const models: Model[] = [
     scores: { coding: 69, codingLive: 81, reasoning: 83, reasoningHle: 20, math: 88, mathBenchmark: "AIME 2025", general: 85, elo: 1432 },
     providers: [
       { providerId: "openai", costPer1MInput: 2.00, costPer1MOutput: 8.00, costPer1MCachedInput: 0.50, tokensPerSecond: 109 },
+      { providerId: "azure", costPer1MInput: 2.00, costPer1MOutput: 8.00, costPer1MCachedInput: 0.50, tokensPerSecond: 141 },
     ],
   },
   {
@@ -309,6 +316,7 @@ export const models: Model[] = [
     scores: { coding: 68, codingLive: 86, reasoning: 78, reasoningHle: 18, math: 91, mathBenchmark: "AIME 2025", general: 83 },
     providers: [
       { providerId: "openai", costPer1MInput: 1.10, costPer1MOutput: 4.40, costPer1MCachedInput: 0.275, tokensPerSecond: 116 },
+      { providerId: "azure", costPer1MInput: 1.10, costPer1MOutput: 4.40, costPer1MCachedInput: 0.275, tokensPerSecond: 134 },
     ],
   },
   {
@@ -326,6 +334,7 @@ export const models: Model[] = [
     scores: { coding: 75, codingLive: 85, reasoning: 85, reasoningHle: 27, math: 94, mathBenchmark: "AIME 2025", general: 87, elo: 1434 },
     providers: [
       { providerId: "openai", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 89 },
+      { providerId: "azure", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 98 },
     ],
   },
   {
@@ -343,6 +352,7 @@ export const models: Model[] = [
     scores: { codingLive: 84, reasoning: 83, reasoningHle: 20, math: 91, mathBenchmark: "AIME 2025", general: 84 },
     providers: [
       { providerId: "openai", costPer1MInput: 0.25, costPer1MOutput: 2.00, costPer1MCachedInput: 0.025, tokensPerSecond: 74 },
+      { providerId: "azure", costPer1MInput: 0.25, costPer1MOutput: 2.00, costPer1MCachedInput: 0.025, tokensPerSecond: 75 },
     ],
   },
   {
@@ -360,6 +370,7 @@ export const models: Model[] = [
     scores: { codingLive: 79, reasoning: 68, reasoningHle: 8, math: 84, mathBenchmark: "AIME 2025", general: 78, elo: 1338 },
     providers: [
       { providerId: "openai", costPer1MInput: 0.05, costPer1MOutput: 0.40, costPer1MCachedInput: 0.005, tokensPerSecond: 128 },
+      { providerId: "azure", costPer1MInput: 0.05, costPer1MOutput: 0.40, costPer1MCachedInput: 0.005, tokensPerSecond: 131 },
     ],
   },
   {
@@ -377,6 +388,7 @@ export const models: Model[] = [
     scores: { coding: 76, codingLive: 87, reasoning: 87, reasoningHle: 27, math: 94, mathBenchmark: "AIME 2025", general: 87, elo: 1458 },
     providers: [
       { providerId: "openai", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 124 },
+      { providerId: "azure", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 136 },
     ],
   },
   {
@@ -394,6 +406,7 @@ export const models: Model[] = [
     scores: { coding: 80, codingLive: 89, reasoning: 90, reasoningHle: 35, math: 99, mathBenchmark: "AIME 2025", general: 87, elo: 1441 },
     providers: [
       { providerId: "openai", costPer1MInput: 1.75, costPer1MOutput: 14.00, costPer1MCachedInput: 0.175, tokensPerSecond: 87 },
+      { providerId: "azure", costPer1MInput: 1.75, costPer1MOutput: 14.00, costPer1MCachedInput: 0.175, tokensPerSecond: 88 },
     ],
   },
   {
@@ -432,6 +445,8 @@ export const models: Model[] = [
     scores: { coding: 77, codingLive: 71, reasoning: 83, reasoningHle: 17, math: 88, mathBenchmark: "AIME 2025", general: 88 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 85 },
+      { providerId: "bedrock", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 103 },
+      { providerId: "vertex", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 49 },
     ],
   },
   {
@@ -449,6 +464,8 @@ export const models: Model[] = [
     scores: { coding: 73, codingLive: 51, reasoning: 65, reasoningHle: 4, math: 39, mathBenchmark: "AIME 2025", general: 80 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 1.00, costPer1MOutput: 5.00, costPer1MCachedInput: 0.10, tokensPerSecond: 109 },
+      { providerId: "bedrock", costPer1MInput: 1.00, costPer1MOutput: 5.00, costPer1MCachedInput: 0.10, tokensPerSecond: 95 },
+      { providerId: "vertex", costPer1MInput: 1.00, costPer1MOutput: 5.00, costPer1MCachedInput: 0.10, tokensPerSecond: 87 },
     ],
   },
   {
@@ -466,6 +483,8 @@ export const models: Model[] = [
     scores: { coding: 81, codingLive: 87, reasoning: 87, reasoningHle: 28, math: 91, mathBenchmark: "AIME 2025", general: 90 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 88 },
+      { providerId: "bedrock", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 82 },
+      { providerId: "vertex", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 75 },
     ],
   },
   {
@@ -484,6 +503,8 @@ export const models: Model[] = [
     scores: { coding: 81, reasoning: 90, reasoningHle: 37, math: 100, mathBenchmark: "AIME 2025", multimodal: 74 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 73 },
+      { providerId: "bedrock", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 67 },
+      { providerId: "vertex", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 56 },
     ],
   },
   {
@@ -502,6 +523,8 @@ export const models: Model[] = [
     scores: { coding: 80, reasoning: 88, reasoningHle: 30, general: 89, multimodal: 75 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 57 },
+      { providerId: "bedrock", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 64 },
+      { providerId: "vertex", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 51 },
     ],
   },
   {
@@ -519,6 +542,7 @@ export const models: Model[] = [
     scores: { coding: 64, codingLive: 80, reasoning: 84, reasoningHle: 21, math: 88, mathBenchmark: "AIME 2025", general: 86, elo: 1465 },
     providers: [
       { providerId: "google", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 159 },
+      { providerId: "vertex", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 139 },
     ],
   },
   {
@@ -535,6 +559,7 @@ export const models: Model[] = [
     scores: { codingLive: 70, reasoning: 79, reasoningHle: 11, math: 73, mathBenchmark: "AIME 2025", general: 83 },
     providers: [
       { providerId: "google", costPer1MInput: 0.30, costPer1MOutput: 2.50, costPer1MCachedInput: 0.03, tokensPerSecond: 282 },
+      { providerId: "vertex", costPer1MInput: 0.30, costPer1MOutput: 2.50, costPer1MCachedInput: 0.03, tokensPerSecond: 223 },
     ],
   },
   {
@@ -551,6 +576,7 @@ export const models: Model[] = [
     scores: { coding: 76, codingLive: 92, reasoning: 91, reasoningHle: 37, math: 96, mathBenchmark: "AIME 2025", general: 90, elo: 1492 },
     providers: [
       { providerId: "google", costPer1MInput: 2.00, costPer1MOutput: 12.00, costPer1MCachedInput: 0.20, tokensPerSecond: 127 },
+      { providerId: "vertex", costPer1MInput: 2.00, costPer1MOutput: 12.00, costPer1MCachedInput: 0.20, tokensPerSecond: 142 },
     ],
   },
   {
@@ -568,6 +594,7 @@ export const models: Model[] = [
     scores: { coding: 78, codingLive: 91, reasoning: 90, reasoningHle: 35, math: 97, mathBenchmark: "AIME 2025", general: 89 },
     providers: [
       { providerId: "google", costPer1MInput: 0.50, costPer1MOutput: 3.00, costPer1MCachedInput: 0.05, tokensPerSecond: 215 },
+      { providerId: "vertex", costPer1MInput: 0.50, costPer1MOutput: 3.00, costPer1MCachedInput: 0.05, tokensPerSecond: 209 },
     ],
   },
   {
@@ -586,6 +613,7 @@ export const models: Model[] = [
     scores: { coding: 81, reasoning: 94, reasoningHle: 45 },
     providers: [
       { providerId: "google", costPer1MInput: 2.00, costPer1MOutput: 12.00, costPer1MCachedInput: 0.20, tokensPerSecond: 104 },
+      { providerId: "vertex", costPer1MInput: 2.00, costPer1MOutput: 12.00, costPer1MCachedInput: 0.20, tokensPerSecond: 130 },
     ],
   },
   {
@@ -654,6 +682,7 @@ export const models: Model[] = [
     scores: { codingLive: 47, reasoning: 68, reasoningHle: 4, math: 38, mathBenchmark: "AIME 2025", general: 81, elo: 1418 },
     providers: [
       { providerId: "mistral", costPer1MInput: 0.50, costPer1MOutput: 1.50, tokensPerSecond: 56 },
+      { providerId: "bedrock", costPer1MInput: 0.50, costPer1MOutput: 1.50, tokensPerSecond: 147 },
     ],
   },
   // --- DeepSeek ---
@@ -671,6 +700,8 @@ export const models: Model[] = [
     scores: { codingLive: 36, reasoning: 56, reasoningHle: 4, math: 26, mathBenchmark: "AIME 2025", general: 75 },
     providers: [
       { providerId: "together", costPer1MInput: 0.40, costPer1MOutput: 0.89, tokensPerSecond: 75 },
+      { providerId: "bedrock", costPer1MInput: 0.58, costPer1MOutput: 1.68, tokensPerSecond: 75 },
+      { providerId: "vertex", costPer1MInput: 0.56, costPer1MOutput: 1.68, tokensPerSecond: 120 },
     ],
   },
   {
@@ -689,6 +720,8 @@ export const models: Model[] = [
     scores: { codingLive: 77, reasoning: 81, reasoningHle: 15, math: 76, mathBenchmark: "AIME 2025", general: 85 },
     providers: [
       { providerId: "together", costPer1MInput: 3.00, costPer1MOutput: 7.00, tokensPerSecond: 306 },
+      { providerId: "bedrock", costPer1MInput: 1.35, costPer1MOutput: 5.40, tokensPerSecond: 306 },
+      { providerId: "vertex", costPer1MInput: 1.35, costPer1MOutput: 5.50, tokensPerSecond: 120 },
     ],
   },
   {
@@ -747,6 +780,9 @@ export const models: Model[] = [
       { providerId: "together", costPer1MInput: 0.27, costPer1MOutput: 0.85, tokensPerSecond: 126 },
       { providerId: "fireworks", costPer1MInput: 0.22, costPer1MOutput: 0.88, tokensPerSecond: 145 },
       { providerId: "groq", costPer1MInput: 0.20, costPer1MOutput: 0.60, tokensPerSecond: 434 },
+      { providerId: "azure", costPer1MInput: 0.27, costPer1MOutput: 0.85, tokensPerSecond: 127 },
+      { providerId: "bedrock", costPer1MInput: 0.24, costPer1MOutput: 0.97, tokensPerSecond: 213 },
+      { providerId: "vertex", costPer1MInput: 0.20, costPer1MOutput: 0.60, tokensPerSecond: 152 },
     ],
   },
   // --- Alibaba ---
@@ -859,6 +895,7 @@ export const models: Model[] = [
     scores: { codingLive: 29, reasoning: 53, reasoningHle: 5, math: 13, mathBenchmark: "AIME 2025", general: 71, elo: 1353 },
     providers: [
       { providerId: "cohere", costPer1MInput: 2.50, costPer1MOutput: 10.00, tokensPerSecond: 49 },
+      { providerId: "azure", costPer1MInput: 2.50, costPer1MOutput: 10.00, tokensPerSecond: 49 },
     ],
   },
   {
@@ -876,6 +913,8 @@ export const models: Model[] = [
     scores: { codingLive: 12, reasoning: 32, reasoningHle: 5, general: 43 },
     providers: [
       { providerId: "cohere", costPer1MInput: 3.00, costPer1MOutput: 15.00, tokensPerSecond: 59 },
+      { providerId: "azure", costPer1MInput: 2.50, costPer1MOutput: 10.00, tokensPerSecond: 59 },
+      { providerId: "bedrock", costPer1MInput: 3.00, costPer1MOutput: 15.00, tokensPerSecond: 59 },
     ],
   },
 ];
