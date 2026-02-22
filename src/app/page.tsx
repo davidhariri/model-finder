@@ -235,9 +235,11 @@ export default function Home() {
         </h1>
         <div className="flex flex-col items-center gap-5 max-w-3xl mx-auto">
           {/* Sliders: stacked on mobile, 3-col on desktop */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-xl">
             <MinScoreSlider value={minScore} onChange={setMinScore} />
-            {/* <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={500} label="Minimum Best Speed" unit="tok/s" /> */}
+            <div className="hidden md:block">
+              <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={500} label="Minimum Best Speed" unit="tok/s" />
+            </div>
             <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={0} max={50} label="Maximum Blended Cost" prefix="$" unit="/1M" />
           </div>
           {/* Pills + Provider dropdown */}
