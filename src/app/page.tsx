@@ -240,7 +240,7 @@ export default function Home() {
             <div className="hidden md:block">
               <MinScoreSlider value={minSpeedVal} onChange={setMinSpeedVal} min={0} max={500} label="Minimum Best Speed" unit="tok/s" />
             </div>
-            <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={0} max={50} label="Maximum Blended Cost" prefix="$" unit="/1M" />
+            <MinScoreSlider value={maxCostVal} onChange={setMaxCostVal} min={1} max={50} label="Maximum Blended Cost" prefix="$" unit="/1M" />
           </div>
           {/* Pills + Provider dropdown */}
           <div className="flex gap-3 items-center flex-wrap justify-center">
