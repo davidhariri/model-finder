@@ -4,7 +4,7 @@
 
 An interactive dashboard for comparing LLM models across intelligence, speed, and cost. Filter, sort, and visualize models to find the right one for your use case.
 
-**Live at [modelfinder.io](https://modelfinder.io)**
+**Live at [models.dhariri.com](https://models.dhariri.com)**
 
 ## Contributing
 
