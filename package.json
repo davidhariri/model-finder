@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@next/swc-darwin-arm64": "^16.1.6",
     "@visx/axis": "^3.12.0",
     "@visx/gradient": "^3.12.0",
     "@visx/group": "^3.12.0",
