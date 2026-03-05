@@ -254,7 +254,15 @@ export default function ModelDetail({
           </div>
           <div className="flex items-start justify-between relative">
             <div>
-              <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight text-foreground mb-4">{model.name}</h2>
+              <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight text-foreground mb-4">
+                {model.name}
+                {model.expectingMoreBenchmarks && (
+                  <span className="inline-flex items-center gap-1.5 ml-3 text-sm font-medium text-orange-500 align-middle">
+                    <span className="w-2 h-2 rounded-full bg-orange-500" />
+                    Missing data
+                  </span>
+                )}
+              </h2>
               <p className="text-[15px] text-foreground-secondary flex items-center gap-1.5 mt-1">
                 Created by
                 <a

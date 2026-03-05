@@ -370,6 +370,9 @@ export default function Home() {
                     <span className="flex items-center gap-1.5">
                       <BrandIcon id={model.labId} size={14} className="shrink-0 md:hidden" />
                       {model.name}
+                      {model.expectingMoreBenchmarks && (
+                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" title="Missing benchmark data" />
+                      )}
                     </span>
                   </td>
                   <td className="py-3 pr-3 text-foreground-secondary hidden md:table-cell">
