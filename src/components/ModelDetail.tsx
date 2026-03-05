@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Model, bestCost, bestSpeed, blendedCost, formatContext, formatParams, getLab, getProvider, overallScore } from "@/data/models";
+import { Model, bestCost, bestSpeed, blendedCost, formatContext, formatParams, getLab, getProvider, overallScore, models as allModelsData } from "@/data/models";
 import BrandIcon, { ICONS, PROVIDER_ALIAS } from "./BrandIcon";
 
 type Phase = "enter" | "open" | "closing";
@@ -10,6 +10,7 @@ interface ModelDetailProps {
   model: Model;
   onClose: () => void;
   onCloseStart: () => void;
+  onNavigate?: (model: Model) => void;
 }
 
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -22,6 +23,7 @@ export default function ModelDetail({
   model,
   onClose,
   onCloseStart,
+  onNavigate,
 }: ModelDetailProps) {
   const [phase, setPhase] = useState<Phase>("enter");
   const [selectedTile, setSelectedTile] = useState<Tile>("intelligence");
@@ -81,23 +83,25 @@ export default function ModelDetail({
 
   const lab = getLab(model.labId);
   const score = overallScore(model);
+  const ancestor = model.ancestor ? allModelsData.find((m) => m.id === model.ancestor) : undefined;
+  const successor = allModelsData.find((m) => m.ancestor === model.id);
 
   const speedProviders = [...model.providers].sort((a, b) => b.tokensPerSecond - a.tokensPerSecond);
   const costProviders = [...model.providers].sort((a, b) => blendedCost(a) - blendedCost(b));
   const maxSpeed = Math.max(...model.providers.map((p) => p.tokensPerSecond));
   const maxCostVal = Math.max(...model.providers.map((p) => Math.max(p.costPer1MInput, p.costPer1MOutput)));
 
-  const barData: { label: string; pct: number; display: string; providerId?: string; costType?: "input" | "output" }[] =
+  const barData: { label: string; pct: number | null; display: string; providerId?: string; costType?: "input" | "output" }[] =
     selectedTile === "intelligence"
       ? [
-          ...(model.scores.coding != null ? [{ label: "Coding (SWE-Bench)", pct: model.scores.coding, display: model.scores.coding.toString() }] : []),
-          ...(model.scores.codingLive != null ? [{ label: "Coding (LiveCode)", pct: model.scores.codingLive, display: model.scores.codingLive.toString() }] : []),
+          { label: "Coding (SWE-Bench)", pct: model.scores.coding ?? null, display: model.scores.coding != null ? model.scores.coding.toString() : "Not Available" },
+          { label: "Coding (LiveCode)", pct: model.scores.codingLive ?? null, display: model.scores.codingLive != null ? model.scores.codingLive.toString() : "Not Available" },
           { label: "Reasoning (GPQA)", pct: model.scores.reasoning, display: model.scores.reasoning.toString() },
-          ...(model.scores.reasoningHle != null ? [{ label: "Reasoning (HLE)", pct: model.scores.reasoningHle, display: model.scores.reasoningHle.toString() }] : []),
-          ...(model.scores.math != null ? [{ label: `Math (${model.scores.mathBenchmark})`, pct: model.scores.math, display: model.scores.math.toString() }] : []),
-          ...(model.scores.general != null ? [{ label: "General (MMLU-Pro)", pct: model.scores.general, display: model.scores.general.toString() }] : []),
-          ...(model.scores.multimodal != null ? [{ label: "Multimodal (MMMU-Pro)", pct: model.scores.multimodal, display: model.scores.multimodal.toString() }] : []),
-          ...(model.scores.elo != null ? [{ label: "Human Pref (Elo)", pct: Math.min(100, ((model.scores.elo - 800) / 600) * 100), display: model.scores.elo.toString() }] : []),
+          { label: "Reasoning (HLE)", pct: model.scores.reasoningHle ?? null, display: model.scores.reasoningHle != null ? model.scores.reasoningHle.toString() : "Not Available" },
+          { label: `Math (${model.scores.mathBenchmark ?? "AIME"})`, pct: model.scores.math ?? null, display: model.scores.math != null ? model.scores.math.toString() : "Not Available" },
+          { label: "General (MMLU-Pro)", pct: model.scores.general ?? null, display: model.scores.general != null ? model.scores.general.toString() : "Not Available" },
+          { label: "Multimodal (MMMU-Pro)", pct: model.scores.multimodal ?? null, display: model.scores.multimodal != null ? model.scores.multimodal.toString() : "Not Available" },
+          { label: "Human Pref (Elo)", pct: model.scores.elo != null ? Math.min(100, ((model.scores.elo - 800) / 600) * 100) : null, display: model.scores.elo != null ? model.scores.elo.toString() : "Not Available" },
         ]
       : selectedTile === "speed"
         ? speedProviders.map((p) => ({
@@ -259,7 +263,7 @@ export default function ModelDetail({
                 {model.expectingMoreBenchmarks && (
                   <span className="inline-flex items-center gap-1.5 ml-3 text-sm font-medium text-orange-500 align-middle">
                     <span className="w-2 h-2 rounded-full bg-orange-500" />
-                    Missing data
+                    Awaiting data
                   </span>
                 )}
               </h2>
@@ -339,24 +343,32 @@ export default function ModelDetail({
                     {s.providerId && <BrandIcon id={s.providerId} size={14} className="shrink-0" />}
                     {s.label}
                   </span>
-                  <div
-                    className="flex-1 h-3.5 rounded-full overflow-hidden"
-                    style={{ background: "var(--surface)" }}
-                  >
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${s.pct}%`,
-                        background: barGradient(s.costType),
-                        transition: visible
-                          ? `width 0.6s ${EASING} 0.2s`
-                          : "none",
-                      }}
-                    />
-                  </div>
-                  <span className="text-[13px] font-semibold text-foreground w-20 sm:w-24 shrink-0 text-right">
-                    {s.display}
-                  </span>
+                  {s.pct != null ? (
+                    <>
+                      <div
+                        className="flex-1 h-3.5 rounded-full overflow-hidden"
+                        style={{ background: "var(--surface)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${s.pct}%`,
+                            background: barGradient(s.costType),
+                            transition: visible
+                              ? `width 0.6s ${EASING} 0.2s`
+                              : "none",
+                          }}
+                        />
+                      </div>
+                      <span className="text-[13px] font-semibold text-foreground w-20 sm:w-24 shrink-0 text-right">
+                        {s.display}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="flex-1 text-[13px] text-foreground-tertiary italic">
+                      Not Available
+                    </span>
+                  )}
                 </div>
                 <div className="sm:hidden flex items-center gap-1 mt-1 text-[11px] text-foreground-secondary truncate">
                   {s.providerId && <BrandIcon id={s.providerId} size={12} className="shrink-0" />}
@@ -437,6 +449,32 @@ export default function ModelDetail({
                   ) : formatDate(model.releaseDate)}
                 </td>
               </tr>
+              {ancestor && (
+                <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                  <td className="py-2.5 text-foreground-secondary">Preceded by</td>
+                  <td className="py-2.5 text-right font-medium text-foreground">
+                    <button
+                      className="underline decoration-foreground/20 hover:text-foreground/70 transition-colors cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); onNavigate?.(ancestor); }}
+                    >
+                      {ancestor.name}
+                    </button>
+                  </td>
+                </tr>
+              )}
+              {successor && (
+                <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                  <td className="py-2.5 text-foreground-secondary">Succeeded by</td>
+                  <td className="py-2.5 text-right font-medium text-foreground">
+                    <button
+                      className="underline decoration-foreground/20 hover:text-foreground/70 transition-colors cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); onNavigate?.(successor); }}
+                    >
+                      {successor.name}
+                    </button>
+                  </td>
+                </tr>
+              )}
               <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
                 <td className="py-2.5 text-foreground-secondary">Thinking</td>
                 <td className={`py-2.5 text-right font-medium ${model.thinking ? "text-sys-blue" : "text-foreground"}`}>

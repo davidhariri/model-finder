@@ -371,7 +371,7 @@ export default function Home() {
                       <BrandIcon id={model.labId} size={14} className="shrink-0 md:hidden" />
                       {model.name}
                       {model.expectingMoreBenchmarks && (
-                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" title="Missing benchmark data" />
+                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" title="Awaiting benchmark data" />
                       )}
                     </span>
                   </td>
@@ -431,6 +431,7 @@ export default function Home() {
           model={selectedModel}
           onClose={closeModel}
           onCloseStart={startClosing}
+          onNavigate={openModel}
         />
       )}
     </>

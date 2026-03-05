@@ -129,6 +129,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   // One dot per model using best provider for the current mode
   const hoveredId = tooltipData?.model.id ?? null;
 
+  const layoutMap = new Map<string, { cx: number; cy: number }>();
   const layoutItems = models.map((model) => {
     const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
     const cx = isCost
@@ -136,11 +137,21 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
       : speedXScale(bestSpeed(model));
     const isHovered = model.id === hoveredId;
     const isHighlighted = !tooltipOpen || isHovered;
+    layoutMap.set(model.id, { cx, cy });
     return { model, cx, cy, key: model.id, isHovered, isHighlighted };
   }).sort((a, b) => {
     if (a.isHovered !== b.isHovered) return a.isHovered ? 1 : -1;
     return 0;
   });
+
+  // Trajectory lines: connect models to their ancestors
+  const trajectoryLines = models
+    .filter((m) => m.ancestor && layoutMap.has(m.ancestor))
+    .map((m) => {
+      const from = layoutMap.get(m.ancestor!)!;
+      const to = layoutMap.get(m.id)!;
+      return { key: `${m.ancestor}-${m.id}`, x1: from.cx, y1: from.cy, x2: to.cx, y2: to.cy };
+    });
 
 
   return (
@@ -219,6 +230,19 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
               Benchmark Scores
             </tspan>
           </text>
+
+          {/* Trajectory lines connecting model series */}
+          {trajectoryLines.map(({ key, x1, y1, x2, y2 }) => (
+            <line
+              key={key}
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke="var(--foreground-tertiary)"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              opacity={tooltipOpen ? 0.15 : 0.3}
+              style={{ transition: `x1 ${DURATION} ${EASING}, y1 ${DURATION} ${EASING}, x2 ${DURATION} ${EASING}, y2 ${DURATION} ${EASING}, opacity 0.2s ease` } as React.CSSProperties}
+            />
+          ))}
 
           {/* Pass 1: hit areas + points */}
           {layoutItems.map(({ model, cx, cy, key, isHighlighted }) => (
