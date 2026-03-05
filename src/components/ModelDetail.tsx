@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Model, bestCost, bestSpeed, blendedCost, formatContext, formatParams, getLab, getProvider, overallScore, models as allModelsData } from "@/data/models";
+import { Model, bestCost, bestSpeed, blendedCost, formatContext, formatParams, getLab, getProvider, overallScore, scoreIsEstimated, resolveCompositeScores, models as allModelsData } from "@/data/models";
 import BrandIcon, { ICONS, PROVIDER_ALIAS } from "./BrandIcon";
 
 type Phase = "enter" | "open" | "closing";
@@ -91,18 +91,22 @@ export default function ModelDetail({
   const maxSpeed = Math.max(...model.providers.map((p) => p.tokensPerSecond));
   const maxCostVal = Math.max(...model.providers.map((p) => Math.max(p.costPer1MInput, p.costPer1MOutput)));
 
-  const barData: { label: string; pct: number | null; display: string; providerId?: string; costType?: "input" | "output" }[] =
+  const resolved = resolveCompositeScores(model);
+  const BENCH_LABELS: Record<string, string> = {
+    reasoning: "Reasoning (GPQA)",
+    reasoningHle: "Expert Reasoning (HLE)",
+    codingLive: "Coding (LiveCodeBench)",
+  };
+
+  const barData: { label: string; pct: number | null; display: string; inherited?: string; providerId?: string; costType?: "input" | "output" }[] =
     selectedTile === "intelligence"
-      ? [
-          { label: "Coding (SWE-Bench)", pct: model.scores.coding ?? null, display: model.scores.coding != null ? model.scores.coding.toString() : "Not Available" },
-          { label: "Coding (LiveCode)", pct: model.scores.codingLive ?? null, display: model.scores.codingLive != null ? model.scores.codingLive.toString() : "Not Available" },
-          { label: "Reasoning (GPQA)", pct: model.scores.reasoning, display: model.scores.reasoning.toString() },
-          { label: "Reasoning (HLE)", pct: model.scores.reasoningHle ?? null, display: model.scores.reasoningHle != null ? model.scores.reasoningHle.toString() : "Not Available" },
-          { label: `Math (${model.scores.mathBenchmark ?? "AIME"})`, pct: model.scores.math ?? null, display: model.scores.math != null ? model.scores.math.toString() : "Not Available" },
-          { label: "General (MMLU-Pro)", pct: model.scores.general ?? null, display: model.scores.general != null ? model.scores.general.toString() : "Not Available" },
-          { label: "Multimodal (MMMU-Pro)", pct: model.scores.multimodal ?? null, display: model.scores.multimodal != null ? model.scores.multimodal.toString() : "Not Available" },
-          { label: "Human Pref (Elo)", pct: model.scores.elo != null ? Math.min(100, ((model.scores.elo - 800) / 600) * 100) : null, display: model.scores.elo != null ? model.scores.elo.toString() : "Not Available" },
-        ]
+      ? resolved.map((r) => ({
+          label: BENCH_LABELS[r.key],
+          pct: isNaN(r.value) ? null : r.value,
+          display: isNaN(r.value) ? "Not Available" : r.value.toString(),
+          inherited: r.inheritedFrom,
+        }))
+
       : selectedTile === "speed"
         ? speedProviders.map((p) => ({
             label: getProvider(p.providerId)?.name ?? p.providerId,
@@ -305,7 +309,7 @@ export default function ModelDetail({
           <div className="mt-6 mb-8 grid grid-cols-3 gap-3">
             <SpecTile
               label="Intelligence"
-              value={score != null ? score.toString() : "—"}
+              value={score != null ? (scoreIsEstimated(model) ? `~${score}` : score.toString()) : "—"}
               desc="Blended score"
               selected={selectedTile === "intelligence"}
               onClick={() => switchTile("intelligence")}
@@ -353,15 +357,17 @@ export default function ModelDetail({
                           className="h-full rounded-full"
                           style={{
                             width: `${s.pct}%`,
-                            background: barGradient(s.costType),
+                            background: s.inherited ? "var(--foreground-tertiary)" : barGradient(s.costType),
+                            opacity: s.inherited ? 0.4 : 1,
                             transition: visible
                               ? `width 0.6s ${EASING} 0.2s`
                               : "none",
                           }}
                         />
                       </div>
-                      <span className="text-[13px] font-semibold text-foreground w-20 sm:w-24 shrink-0 text-right">
+                      <span className={`text-[13px] font-semibold w-20 sm:w-24 shrink-0 text-right ${s.inherited ? "text-foreground-tertiary" : "text-foreground"}`}>
                         {s.display}
+                        {s.inherited && <span className="text-[10px] font-normal block text-orange-500">est.</span>}
                       </span>
                     </>
                   ) : (
@@ -377,6 +383,13 @@ export default function ModelDetail({
               </div>
             ))}
           </div>
+          {selectedTile === "intelligence" && resolved.some((r) => r.inheritedFrom) && (
+            <p className="text-[12px] text-orange-500 mt-3">
+              Estimated — {resolved.filter((r) => r.inheritedFrom).map((r) =>
+                `${BENCH_LABELS[r.key]} inherited from ${r.inheritedFrom}`
+              ).join("; ")}
+            </p>
+          )}
           </div>
 
           {/* Providers */}

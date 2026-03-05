@@ -131,6 +131,30 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   // One dot per model using best provider for the current mode
   const hoveredId = tooltipData?.model.id ?? null;
 
+  // Build the full ancestry chain for the hovered model (ancestors + descendants)
+  const hoveredChainIds = new Set<string>();
+  if (hoveredId) {
+    hoveredChainIds.add(hoveredId);
+    // Walk up ancestors
+    let current = scoredModels.find((m) => m.id === hoveredId);
+    while (current?.ancestor) {
+      const parent = scoredModels.find((m) => m.id === current!.ancestor);
+      if (!parent) break;
+      hoveredChainIds.add(parent.id);
+      current = parent;
+    }
+    // Walk down descendants
+    const addDescendants = (id: string) => {
+      for (const m of scoredModels) {
+        if (m.ancestor === id && !hoveredChainIds.has(m.id)) {
+          hoveredChainIds.add(m.id);
+          addDescendants(m.id);
+        }
+      }
+    };
+    addDescendants(hoveredId);
+  }
+
   const layoutMap = new Map<string, { cx: number; cy: number }>();
   const layoutItems = scoredModels.map((model) => {
     const cy = yScale(overallScore(model)!) + (nudgeMap.get(model.id) ?? 0);
@@ -138,22 +162,25 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
       ? costXScale(bestCost(model))
       : speedXScale(bestSpeed(model));
     const isHovered = model.id === hoveredId;
-    const isHighlighted = !tooltipOpen || isHovered;
+    const inChain = hoveredChainIds.has(model.id);
+    const isHighlighted = !tooltipOpen || isHovered || inChain;
     layoutMap.set(model.id, { cx, cy });
-    return { model, cx, cy, key: model.id, isHovered, isHighlighted };
+    return { model, cx, cy, key: model.id, isHovered, inChain, isHighlighted };
   }).sort((a, b) => {
     if (a.isHovered !== b.isHovered) return a.isHovered ? 1 : -1;
     return 0;
   });
 
-  // Trajectory lines: connect models to their ancestors
-  const trajectoryLines = scoredModels
-    .filter((m) => m.ancestor && layoutMap.has(m.ancestor))
-    .map((m) => {
-      const from = layoutMap.get(m.ancestor!)!;
-      const to = layoutMap.get(m.id)!;
-      return { key: `${m.ancestor}-${m.id}`, x1: from.cx, y1: from.cy, x2: to.cx, y2: to.cy };
-    });
+  // Trajectory lines: only show for the hovered model's chain
+  const trajectoryLines = tooltipOpen
+    ? scoredModels
+        .filter((m) => m.ancestor && layoutMap.has(m.ancestor) && hoveredChainIds.has(m.id) && hoveredChainIds.has(m.ancestor))
+        .map((m) => {
+          const from = layoutMap.get(m.ancestor!)!;
+          const to = layoutMap.get(m.id)!;
+          return { key: `${m.ancestor}-${m.id}`, x1: from.cx, y1: from.cy, x2: to.cx, y2: to.cy };
+        })
+    : [];
 
 
   return (
@@ -233,7 +260,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
             </tspan>
           </text>
 
-          {/* Trajectory lines connecting model series */}
+          {/* Trajectory lines for hovered model's series */}
           {trajectoryLines.map(({ key, x1, y1, x2, y2 }) => (
             <line
               key={key}
@@ -241,8 +268,8 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
               stroke="var(--foreground-tertiary)"
               strokeWidth={1.5}
               strokeDasharray="4 3"
-              opacity={tooltipOpen ? 0.15 : 0.3}
-              style={{ transition: `x1 ${DURATION} ${EASING}, y1 ${DURATION} ${EASING}, x2 ${DURATION} ${EASING}, y2 ${DURATION} ${EASING}, opacity 0.2s ease` } as React.CSSProperties}
+              opacity={0.5}
+              style={{ transition: `x1 ${DURATION} ${EASING}, y1 ${DURATION} ${EASING}, x2 ${DURATION} ${EASING}, y2 ${DURATION} ${EASING}` } as React.CSSProperties}
             />
           ))}
 
@@ -285,8 +312,10 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
             </g>
           ))}
 
-          {/* Pass 2: labels on top of all points */}
-          {layoutItems.map(({ model, cx, cy, key, isHighlighted }) => (
+          {/* Pass 2: labels for non-chain items */}
+          {layoutItems.filter(({ inChain }) => !inChain).map(({ model, cx, cy, key, isHighlighted }) => {
+            const labelOpacity = isHighlighted ? (tooltipOpen ? 0.3 : 0.8) : 0.3;
+            return (
             <g
               key={`label-${key}`}
               style={{
@@ -294,35 +323,30 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
                 transition: `transform ${DURATION} ${EASING}`,
               }}
             >
-              <Text
-                x={0}
-                y={0}
-                textAnchor="middle"
-                fill="var(--background)"
-                fontSize={labelFontSize}
-                fontWeight={500}
-                stroke="var(--background)"
-                strokeWidth={4}
-                paintOrder="stroke"
-                opacity={isHighlighted ? (tooltipOpen ? 1 : 0.8) : 0.3}
-                style={{ transition: "opacity 0.2s ease" }}
-              >
-                {model.name}
-              </Text>
-              <Text
-                x={0}
-                y={0}
-                textAnchor="middle"
-                fill="var(--foreground-secondary)"
-                fontSize={labelFontSize}
-                fontWeight={500}
-                opacity={isHighlighted ? (tooltipOpen ? 1 : 0.8) : 0.3}
-                style={{ transition: "opacity 0.2s ease" }}
-              >
-                {model.name}
-              </Text>
+              <Text x={0} y={0} textAnchor="middle" fill="var(--background)" fontSize={labelFontSize} fontWeight={500} stroke="var(--background)" strokeWidth={4} paintOrder="stroke" opacity={labelOpacity} style={{ transition: "opacity 0.2s ease" }}>{model.name}</Text>
+              <Text x={0} y={0} textAnchor="middle" fill="var(--foreground-secondary)" fontSize={labelFontSize} fontWeight={500} opacity={labelOpacity} style={{ transition: "opacity 0.2s ease" }}>{model.name}</Text>
             </g>
-          ))}
+            );
+          })}
+
+          {/* Pass 3: chain dots + labels rendered last (on top of everything) */}
+          {layoutItems.filter(({ inChain }) => inChain).map(({ model, cx, cy, key }) => {
+            const labelOpacity = 1;
+            return (
+            <g key={`chain-${key}`}>
+              <circle
+                cx={cx} cy={cy} r={pointRadius}
+                fill={isCost ? "url(#scatter-cost-grad)" : "url(#scatter-speed-grad)"}
+                pointerEvents="none"
+                style={{ opacity: 1, transition: `cx ${DURATION} ${EASING}` } as React.CSSProperties}
+              />
+              <g style={{ transform: `translate(${cx}px, ${cy - pointRadius - 6}px)`, transition: `transform ${DURATION} ${EASING}` }}>
+                <Text x={0} y={0} textAnchor="middle" fill="var(--background)" fontSize={labelFontSize} fontWeight={500} stroke="var(--background)" strokeWidth={4} paintOrder="stroke" opacity={labelOpacity} style={{ transition: "opacity 0.2s ease" }}>{model.name}</Text>
+                <Text x={0} y={0} textAnchor="middle" fill="var(--foreground-secondary)" fontSize={labelFontSize} fontWeight={500} opacity={labelOpacity} style={{ transition: "opacity 0.2s ease" }}>{model.name}</Text>
+              </g>
+            </g>
+            );
+          })}
         </Group>
       </svg>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Model, models, providers, overallScore, bestSpeed, bestCost, getLab, getProvider } from "@/data/models";
+import { Model, models, providers, overallScore, scoreIsEstimated, bestSpeed, bestCost, getLab, getProvider } from "@/data/models";
 import CostPerformanceScatter from "@/components/CostPerformanceScatter";
 import RankingTabs from "@/components/RankingTabs";
 import ModelDetail from "@/components/ModelDetail";
@@ -11,9 +11,9 @@ import BrandIcon from "@/components/BrandIcon";
 const EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export default function Home() {
-  const [minScore, setMinScore] = useState(50);
-  const [minSpeedVal, setMinSpeedVal] = useState(100);
-  const [maxCostVal, setMaxCostVal] = useState(20);
+  const [minScore, setMinScore] = useState(0);
+  const [minSpeedVal, setMinSpeedVal] = useState(0);
+  const [maxCostVal, setMaxCostVal] = useState(50);
   const [requireVision, setRequireVision] = useState(false);
   const [requireOpenWeights, setRequireOpenWeights] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
@@ -107,8 +107,9 @@ export default function Home() {
     }
   };
 
-  const sorted = sortCol
-    ? [...filtered].sort((a, b) => {
+  // Table: all models, unfiltered, with sorting and search
+  const tableSorted = sortCol
+    ? [...models].sort((a, b) => {
         let cmp = 0;
         switch (sortCol) {
           case "model": cmp = a.name.localeCompare(b.name); break;
@@ -120,14 +121,14 @@ export default function Home() {
         }
         return sortAsc ? cmp : -cmp;
       })
-    : [...filtered].sort((a, b) => (overallScore(b) ?? -1) - (overallScore(a) ?? -1));
+    : [...models].sort((a, b) => (overallScore(b) ?? -1) - (overallScore(a) ?? -1));
 
   const searched = searchQuery
-    ? sorted.filter((m) => {
+    ? tableSorted.filter((m) => {
         const q = searchQuery.toLowerCase();
         return m.name.toLowerCase().includes(q) || (getLab(m.labId)?.name ?? "").toLowerCase().includes(q);
       })
-    : sorted;
+    : tableSorted;
 
   return (
     <>
@@ -380,7 +381,7 @@ export default function Home() {
                       {lab?.name}
                     </span>
                   </td>
-                  <td className="py-3 text-right font-medium text-foreground">{overallScore(model) ?? <span className="text-foreground-tertiary">—</span>}</td>
+                  <td className="py-3 text-right font-medium text-foreground">{overallScore(model) != null ? (scoreIsEstimated(model) ? <span className="text-orange-500">~{overallScore(model)}</span> : overallScore(model)) : <span className="text-foreground-tertiary">—</span>}</td>
                   <td className="py-3 text-right font-medium text-foreground">${bestCost(model).toFixed(2)}</td>
                   <td className="py-3 pr-4 text-right font-medium text-foreground">
                     {bestSpeed(model)}

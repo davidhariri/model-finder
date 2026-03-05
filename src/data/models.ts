@@ -81,17 +81,52 @@ function normalize(raw: number, key: string): number {
   return Math.max(0, Math.min(1, (raw - gp.floor) / (gp.ceiling - gp.floor)));
 }
 
+/** Benchmark key used in the composite */
+type CompositeKey = "reasoning" | "reasoningHle" | "codingLive";
+const COMPOSITE_KEYS: CompositeKey[] = ["reasoning", "reasoningHle", "codingLive"];
+
+export interface ResolvedBenchmark {
+  key: CompositeKey;
+  value: number;
+  inheritedFrom?: string; // ancestor model name, if inherited
+}
+
+/**
+ * Resolve the 3 composite benchmarks for a model. If any are missing,
+ * walk up the ancestor chain to inherit values. Returns null entries
+ * for benchmarks that can't be resolved even through ancestors.
+ */
+export function resolveCompositeScores(model: Model): ResolvedBenchmark[] {
+  return COMPOSITE_KEYS.map((key) => {
+    // Own value available
+    if (model.scores[key] != null) {
+      return { key, value: model.scores[key]! };
+    }
+    // Walk ancestor chain
+    let current = model;
+    while (current.ancestor) {
+      const parent = models.find((m) => m.id === current.ancestor);
+      if (!parent) break;
+      if (parent.scores[key] != null) {
+        return { key, value: parent.scores[key]!, inheritedFrom: parent.name };
+      }
+      current = parent;
+    }
+    return { key, value: NaN };
+  });
+}
+
 export function overallScore(model: Model): number | null {
-  const s = model.scores;
-  if (s.reasoning == null || s.reasoningHle == null || s.codingLive == null) {
-    return null;
-  }
-  const parts = [
-    normalize(s.reasoning, "reasoning"),
-    normalize(s.reasoningHle, "reasoningHle"),
-    normalize(s.codingLive, "codingLive"),
-  ];
+  const resolved = resolveCompositeScores(model);
+  if (resolved.some((r) => isNaN(r.value))) return null;
+  const parts = resolved.map((r) => normalize(r.value, r.key));
   return Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100);
+}
+
+/** Whether the score includes any inherited benchmarks */
+export function scoreIsEstimated(model: Model): boolean {
+  const resolved = resolveCompositeScores(model);
+  return resolved.some((r) => r.inheritedFrom != null) && !resolved.some((r) => isNaN(r.value));
 }
 
 /** Best (lowest) blended cost across providers */
@@ -186,7 +221,7 @@ export const models: Model[] = [
     openWeights: false,
     releaseDate: "2024-05-13",
     releaseUrl: "https://openai.com/index/hello-gpt-4o/",
-    scores: { coding: 33, reasoning: 51, reasoningHle: 3, math: 6, mathBenchmark: "AIME 2025", general: 73, multimodal: 54, elo: 1346 },
+    scores: { coding: 33, codingLive: 31, reasoning: 51, reasoningHle: 3, math: 6, mathBenchmark: "AIME 2025", general: 73, multimodal: 54, elo: 1346 },
     providers: [
       { providerId: "openai", costPer1MInput: 2.50, costPer1MOutput: 10.00, costPer1MCachedInput: 1.25, tokensPerSecond: 134 },
       { providerId: "azure", costPer1MInput: 2.50, costPer1MOutput: 10.00, costPer1MCachedInput: 1.25, tokensPerSecond: 170 },
@@ -522,8 +557,7 @@ export const models: Model[] = [
     ancestor: "claude-opus-4-5",
     releaseDate: "2026-02-05",
     releaseUrl: "https://www.anthropic.com/news/claude-opus-4-6",
-    expectingMoreBenchmarks: true,
-    scores: { coding: 81, reasoning: 90, reasoningHle: 37, math: 100, mathBenchmark: "AIME 2025", multimodal: 74 },
+    scores: { coding: 81, codingLive: 76, reasoning: 91, reasoningHle: 40, math: 100, mathBenchmark: "AIME 2025", multimodal: 74 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 73 },
       { providerId: "bedrock", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 67 },
@@ -543,8 +577,7 @@ export const models: Model[] = [
     ancestor: "claude-sonnet-4-5",
     releaseDate: "2026-02-17",
     releaseUrl: "https://www.anthropic.com/news/claude-sonnet-4-6",
-    expectingMoreBenchmarks: true,
-    scores: { coding: 80, reasoning: 88, reasoningHle: 30, general: 89, multimodal: 75 },
+    scores: { coding: 80, codingLive: 72, reasoning: 88, reasoningHle: 30, general: 89, multimodal: 75 },
     providers: [
       { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 57 },
       { providerId: "bedrock", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 64 },
@@ -883,8 +916,7 @@ export const models: Model[] = [
     ancestor: "glm-4-7",
     releaseDate: "2026-02-11",
     releaseUrl: "https://z.ai/blog/glm-5",
-    expectingMoreBenchmarks: true,
-    scores: { coding: 78, reasoning: 82, reasoningHle: 27, math: 93, mathBenchmark: "AIME 2026" },
+    scores: { coding: 78, codingLive: 52, reasoning: 82, reasoningHle: 27, math: 93, mathBenchmark: "AIME 2026" },
     providers: [
       { providerId: "together", costPer1MInput: 1.00, costPer1MOutput: 3.20, tokensPerSecond: 55 },
       { providerId: "fireworks", costPer1MInput: 1.00, costPer1MOutput: 3.20, costPer1MCachedInput: 0.20, tokensPerSecond: 266 },
@@ -903,7 +935,6 @@ export const models: Model[] = [
     openWeights: true,
     releaseDate: "2026-02-12",
     releaseUrl: "https://www.minimax.io/news/minimax-m25",
-    expectingMoreBenchmarks: true,
     scores: { coding: 80, codingLive: 65, reasoning: 85, reasoningHle: 19, math: 86, mathBenchmark: "AIME 2025", general: 77 },
     providers: [
       { providerId: "together", costPer1MInput: 0.30, costPer1MOutput: 1.20, tokensPerSecond: 58 },
