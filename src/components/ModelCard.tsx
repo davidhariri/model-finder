@@ -34,7 +34,7 @@ export default function ModelCard({ model, onClick }: ModelCardProps) {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3">
-        <Stat label="Score" value={overallScore(model).toString()} />
+        <Stat label="Score" value={overallScore(model)?.toString() ?? "—"} />
         <Stat
           label="Cost"
           value={`$${cost.toFixed(2)}`}

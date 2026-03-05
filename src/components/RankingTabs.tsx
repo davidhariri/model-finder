@@ -33,16 +33,17 @@ interface ChartProps {
 }
 
 function getValue(model: Model, tab: Tab): number {
-  if (tab === "intelligence") return overallScore(model);
+  if (tab === "intelligence") return overallScore(model) ?? 0;
   if (tab === "speed") return bestSpeed(model);
   return bestCost(model);
 }
 
 function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick }: ChartProps) {
+  const eligible = tab === "intelligence" ? models.filter((m) => overallScore(m) != null) : models;
   const sorted =
     tab === "cost"
-      ? [...models].sort((a, b) => bestCost(a) - bestCost(b)) // cheapest first
-      : [...models].sort((a, b) => getValue(b, tab) - getValue(a, tab));
+      ? [...eligible].sort((a, b) => bestCost(a) - bestCost(b)) // cheapest first
+      : [...eligible].sort((a, b) => getValue(b, tab) - getValue(a, tab));
 
   const topN = sorted.slice(0, MODEL_COUNT);
 
@@ -277,7 +278,7 @@ function Chart({ models, tab, width, height, animKey, onModelClick, onAboutClick
           <div className="mt-3 space-y-1.5 text-[13px]">
             <div className="flex justify-between gap-6">
               <span className="opacity-60">Intelligence</span>
-              <span className="font-medium tabular-nums">{overallScore(tooltipData)}</span>
+              <span className="font-medium tabular-nums">{overallScore(tooltipData) ?? "—"}</span>
             </div>
             <div className="border-t border-[var(--foreground)]/10" />
             <div className="flex justify-between gap-6">

@@ -82,7 +82,7 @@ export default function ModelDetail({
   }
 
   const lab = getLab(model.labId);
-  const score = overallScore(model);
+  const score = overallScore(model) ?? null;
   const ancestor = model.ancestor ? allModelsData.find((m) => m.id === model.ancestor) : undefined;
   const successor = allModelsData.find((m) => m.ancestor === model.id);
 
@@ -305,7 +305,7 @@ export default function ModelDetail({
           <div className="mt-6 mb-8 grid grid-cols-3 gap-3">
             <SpecTile
               label="Intelligence"
-              value={score.toString()}
+              value={score != null ? score.toString() : "—"}
               desc="Blended score"
               selected={selectedTile === "intelligence"}
               onClick={() => switchTile("intelligence")}

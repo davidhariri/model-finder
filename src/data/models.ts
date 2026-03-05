@@ -60,16 +60,20 @@ export interface Model {
 
 /**
  * Composite intelligence score (0-100) using anchored min-max normalization.
- * Each benchmark is normalized to 0-1 using fixed floor/ceiling "goalposts",
- * then averaged equally. Multimodal and Elo are excluded (shown separately).
+ * Uses exactly 3 benchmarks chosen for high ceilings, contamination resistance,
+ * and predictive value for real-world capability:
+ *   1. GPQA Diamond — expert science reasoning, universal lab adoption
+ *   2. HLE — hardest benchmark, years of headroom, open-ended expert questions
+ *   3. LiveCodeBench — contamination-free rolling coding eval, strong economic signal
+ *
+ * Returns null if any of the 3 required benchmarks is missing.
+ * Other benchmarks (SWE-Bench, AIME, MMLU-Pro, MMMU-Pro, Elo) are shown in
+ * model details but excluded from the composite.
  */
 const GOALPOSTS: Record<string, { floor: number; ceiling: number }> = {
-  coding:       { floor: 0,  ceiling: 80 },  // SWE-Bench Verified
-  codingLive:   { floor: 0,  ceiling: 80 },  // LiveCodeBench (fallback for coding)
   reasoning:    { floor: 25, ceiling: 100 },  // GPQA Diamond (4-choice → 25% random)
-  reasoningHle: { floor: 0,  ceiling: 100 },  // Humanity's Last Exam
-  math:         { floor: 0,  ceiling: 100 },  // AIME 2025/2026
-  general:      { floor: 10, ceiling: 100 },  // MMLU-Pro (10-choice → 10% random)
+  reasoningHle: { floor: 0,  ceiling: 75 },   // HLE (best ~45%, ceiling at 75 for headroom)
+  codingLive:   { floor: 0,  ceiling: 100 },  // LiveCodeBench (rolling, contamination-free)
 };
 
 function normalize(raw: number, key: string): number {
@@ -77,26 +81,16 @@ function normalize(raw: number, key: string): number {
   return Math.max(0, Math.min(1, (raw - gp.floor) / (gp.ceiling - gp.floor)));
 }
 
-export function overallScore(model: Model): number {
+export function overallScore(model: Model): number | null {
   const s = model.scores;
+  if (s.reasoning == null || s.reasoningHle == null || s.codingLive == null) {
+    return null;
+  }
   const parts = [
     normalize(s.reasoning, "reasoning"),
+    normalize(s.reasoningHle, "reasoningHle"),
+    normalize(s.codingLive, "codingLive"),
   ];
-  if (s.general != null) {
-    parts.push(normalize(s.general, "general"));
-  }
-  // Coding: prefer SWE-Bench, fall back to LiveCodeBench
-  if (s.coding != null) {
-    parts.push(normalize(s.coding, "coding"));
-  } else if (s.codingLive != null) {
-    parts.push(normalize(s.codingLive, "codingLive"));
-  }
-  if (s.math != null) {
-    parts.push(normalize(s.math, "math"));
-  }
-  if (s.reasoningHle != null) {
-    parts.push(normalize(s.reasoningHle, "reasoningHle"));
-  }
   return Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100);
 }
 

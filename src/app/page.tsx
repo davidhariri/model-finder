@@ -85,7 +85,7 @@ export default function Home() {
 
   const filtered = models.filter(
     (m) =>
-      overallScore(m) >= minScore &&
+      (overallScore(m) ?? 0) >= minScore &&
       bestSpeed(m) >= minSpeedVal &&
       (maxCostVal >= 50 || bestCost(m) <= maxCostVal) &&
       (!requireVision || m.supportsImages) &&
@@ -113,14 +113,14 @@ export default function Home() {
         switch (sortCol) {
           case "model": cmp = a.name.localeCompare(b.name); break;
           case "creator": cmp = (getLab(a.labId)?.name ?? "").localeCompare(getLab(b.labId)?.name ?? ""); break;
-          case "score": cmp = overallScore(a) - overallScore(b); break;
+          case "score": cmp = (overallScore(a) ?? -1) - (overallScore(b) ?? -1); break;
           case "cost": cmp = bestCost(a) - bestCost(b); break;
           case "speed": cmp = bestSpeed(a) - bestSpeed(b); break;
           case "released": cmp = a.releaseDate.localeCompare(b.releaseDate); break;
         }
         return sortAsc ? cmp : -cmp;
       })
-    : [...filtered].sort((a, b) => overallScore(b) - overallScore(a));
+    : [...filtered].sort((a, b) => (overallScore(b) ?? -1) - (overallScore(a) ?? -1));
 
   const searched = searchQuery
     ? sorted.filter((m) => {
@@ -182,30 +182,26 @@ export default function Home() {
           <div className="space-y-4 text-sm text-foreground-secondary leading-relaxed text-left">
             <p>
               <span className="font-semibold text-foreground mb-1 block">Intelligence Score</span>
-              Each benchmark is normalized to 0–1 using fixed goalposts (random-chance floor to near-mastery ceiling), then averaged equally and scaled to 0–100. Benchmarks included in the composite:
+              Equal-weight average of exactly 3 benchmarks, chosen for high ceilings, contamination resistance, and real-world predictive value. Each is normalized to 0–1 using fixed goalposts, then averaged and scaled to 0–100. All 3 are required — models missing any benchmark show &ldquo;—&rdquo; instead of a score.
             </p>
             <table className="w-full text-[13px]">
               <tbody>
                 <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                  <td className="py-2.5 text-foreground font-medium">Coding</td>
-                  <td className="py-2.5 text-right"><a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">SWE-Bench Verified</a>, <a href="https://livecodebench.github.io" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">LiveCodeBench</a></td>
-                </tr>
-                <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
                   <td className="py-2.5 text-foreground font-medium">Reasoning</td>
-                  <td className="py-2.5 text-right"><a href="https://huggingface.co/datasets/Idavidrein/gpqa" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">GPQA Diamond</a>, <a href="https://agi.safe.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">HLE</a></td>
+                  <td className="py-2.5 text-right"><a href="https://huggingface.co/datasets/Idavidrein/gpqa" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">GPQA Diamond</a></td>
                 </tr>
                 <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                  <td className="py-2.5 text-foreground font-medium">Math</td>
-                  <td className="py-2.5 text-right"><a href="https://artofproblemsolving.com/wiki/index.php/2025_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2025</a>, <a href="https://artofproblemsolving.com/wiki/index.php/2026_AIME" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">AIME 2026</a></td>
+                  <td className="py-2.5 text-foreground font-medium">Expert Reasoning</td>
+                  <td className="py-2.5 text-right"><a href="https://agi.safe.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Humanity&apos;s Last Exam</a></td>
                 </tr>
                 <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
-                  <td className="py-2.5 text-foreground font-medium">General</td>
-                  <td className="py-2.5 text-right"><a href="https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMLU-Pro</a></td>
+                  <td className="py-2.5 text-foreground font-medium">Coding</td>
+                  <td className="py-2.5 text-right"><a href="https://livecodebench.github.io" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">LiveCodeBench</a></td>
                 </tr>
               </tbody>
             </table>
             <p>
-              Not all models have all benchmarks — the score averages whichever are available. <a href="https://mmmu-benchmark.github.io" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMMU-Pro</a> (multimodal) and <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena Elo</a> are shown in model details but excluded from the composite. Speed and cost reflect best available provider.
+              Other benchmarks (SWE-Bench, AIME, MMLU-Pro, <a href="https://mmmu-benchmark.github.io" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">MMMU-Pro</a>, <a href="https://lmarena.ai" target="_blank" rel="noopener noreferrer" className="underline decoration-foreground/20">Chatbot Arena Elo</a>) are shown in model details but excluded from the composite. Speed and cost reflect best available provider.
             </p>
             <p>
               <span className="font-semibold text-foreground mb-1 block">Blended Cost</span>
@@ -248,7 +244,7 @@ export default function Home() {
           Model Browser
         </h1>
         <p className="sr-only">
-          Compare large language models side by side. Filter GPT-4o, Claude, Gemini, Llama, Mistral, DeepSeek, and Qwen models by intelligence benchmarks like GPQA Diamond, SWE-Bench, and MMLU-Pro. Sort by API pricing, tokens per second, and overall score. Find the best LLM for your use case.
+          Compare large language models side by side. Filter GPT-4o, Claude, Gemini, Llama, Mistral, DeepSeek, and Qwen models by intelligence benchmarks like GPQA Diamond, HLE, and LiveCodeBench. Sort by API pricing, tokens per second, and overall score. Find the best LLM for your use case.
         </p>
         <div className="flex flex-col items-center gap-5 max-w-3xl mx-auto">
           {/* Sliders: stacked on mobile, 3-col on desktop */}
@@ -384,7 +380,7 @@ export default function Home() {
                       {lab?.name}
                     </span>
                   </td>
-                  <td className="py-3 text-right font-medium text-foreground">{overallScore(model)}</td>
+                  <td className="py-3 text-right font-medium text-foreground">{overallScore(model) ?? <span className="text-foreground-tertiary">—</span>}</td>
                   <td className="py-3 text-right font-medium text-foreground">${bestCost(model).toFixed(2)}</td>
                   <td className="py-3 pr-4 text-right font-medium text-foreground">
                     {bestSpeed(model)}

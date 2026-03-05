@@ -19,8 +19,9 @@ interface ChartProps extends RankingBarProps {
 }
 
 function Chart({ models, width, height }: ChartProps) {
-  const sorted = [...models].sort(
-    (a, b) => overallScore(b) - overallScore(a)
+  const scoredModels = models.filter((m) => overallScore(m) != null);
+  const sorted = [...scoredModels].sort(
+    (a, b) => overallScore(b)! - overallScore(a)!
   );
 
   const compact = width < 500;
@@ -65,7 +66,7 @@ function Chart({ models, width, height }: ChartProps) {
         <Group left={margin.left} top={margin.top}>
           {sorted.map((model) => {
             const y = yScale(model.id) ?? 0;
-            const barWidth = xScale(overallScore(model));
+            const barWidth = xScale(overallScore(model)!);
             const lab = getLab(model.labId);
             return (
               <Group key={model.id}>
@@ -109,7 +110,7 @@ function Chart({ models, width, height }: ChartProps) {
                   fontSize={13}
                   fontWeight={600}
                 >
-                  {overallScore(model)}
+                  {overallScore(model)!}
                 </Text>
               </Group>
             );
@@ -128,7 +129,7 @@ function Chart({ models, width, height }: ChartProps) {
           <div className="opacity-70">
             {getLab(tooltipData.labId)?.name}
           </div>
-          <div className="mt-1">Score: {overallScore(tooltipData)}</div>
+          <div className="mt-1">Score: {overallScore(tooltipData) ?? "—"}</div>
         </TooltipWithBounds>
       )}
     </div>

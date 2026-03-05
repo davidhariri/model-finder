@@ -77,7 +77,9 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
     range: [0, innerWidth],
   });
 
-  const minScore = Math.min(...models.map((m) => overallScore(m)));
+  // Only plot models that have a valid composite score
+  const scoredModels = models.filter((m) => overallScore(m) != null);
+  const minScore = scoredModels.length > 0 ? Math.min(...scoredModels.map((m) => overallScore(m)!)) : 0;
   const yScale = scaleLinear({
     domain: [Math.max(0, minScore - 5), 100],
     range: [innerHeight, 0],
@@ -101,8 +103,8 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   const nudgeMap = new Map<string, number>();
   {
     const MIN_GAP = pointRadius * 2 + 4;
-    const items = models
-      .map((m) => ({ id: m.id, baseY: yScale(overallScore(m)) }))
+    const items = scoredModels
+      .map((m) => ({ id: m.id, baseY: yScale(overallScore(m)!) }))
       .sort((a, b) => a.baseY - b.baseY);
 
     const adjustedY = items.map((it) => it.baseY);
@@ -130,8 +132,8 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   const hoveredId = tooltipData?.model.id ?? null;
 
   const layoutMap = new Map<string, { cx: number; cy: number }>();
-  const layoutItems = models.map((model) => {
-    const cy = yScale(overallScore(model)) + (nudgeMap.get(model.id) ?? 0);
+  const layoutItems = scoredModels.map((model) => {
+    const cy = yScale(overallScore(model)!) + (nudgeMap.get(model.id) ?? 0);
     const cx = isCost
       ? costXScale(bestCost(model))
       : speedXScale(bestSpeed(model));
@@ -145,7 +147,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
   });
 
   // Trajectory lines: connect models to their ancestors
-  const trajectoryLines = models
+  const trajectoryLines = scoredModels
     .filter((m) => m.ancestor && layoutMap.has(m.ancestor))
     .map((m) => {
       const from = layoutMap.get(m.ancestor!)!;
@@ -340,7 +342,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
           <div className="mt-3 space-y-1.5 text-[13px]">
             <div className="flex justify-between gap-6">
               <span className="opacity-60">Intelligence</span>
-              <span className="font-medium tabular-nums">{overallScore(tooltipData.model)}</span>
+              <span className="font-medium tabular-nums">{overallScore(tooltipData.model) ?? "—"}</span>
             </div>
             <div className="border-t border-[var(--foreground)]/10" />
             <div className="flex justify-between gap-6">
