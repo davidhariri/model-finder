@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://models.dhariri.com"),
-  title: "Compare LLM Models — Benchmarks, Pricing & Speed | Model Browser",
+  title: "David's Model Chooser",
   description:
     "Compare GPT, Claude, Gemini, Llama and more. Filter AI models by intelligence benchmarks, API pricing, and tokens per second. Updated weekly.",
   keywords: ["LLM comparison", "AI model benchmarks", "LLM pricing", "GPT vs Claude", "model speed", "tokens per second", "GPQA", "SWE-Bench", "MMLU", "AI API cost"],
@@ -22,16 +22,16 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
   alternates: { canonical: "https://models.dhariri.com" },
   openGraph: {
-    title: "Compare LLM Models — Benchmarks, Pricing & Speed",
+    title: "David's Model Chooser",
     description:
       "Compare GPT, Claude, Gemini, Llama and more. Filter AI models by intelligence benchmarks, API pricing, and tokens per second.",
     type: "website",
-    siteName: "Model Browser",
+    siteName: "David's Model Chooser",
     images: [{ url: "https://models.dhariri.com/og.png", width: 2358, height: 1524 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Compare LLM Models — Benchmarks, Pricing & Speed",
+    title: "David's Model Chooser",
     description:
       "Compare GPT, Claude, Gemini, Llama and more. Filter AI models by intelligence benchmarks, API pricing, and tokens per second.",
     images: ["https://models.dhariri.com/og.png"],

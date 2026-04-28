@@ -68,7 +68,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
 
   // Scales
   const costXScale = scaleLog({
-    domain: [0.1, 50],
+    domain: [0.05, 50],
     range: [0, innerWidth],
   });
 
@@ -202,7 +202,7 @@ function Chart({ models, width, height, mode, onModelClick, onAboutClick }: Char
             <AxisBottom
               top={innerHeight}
               scale={costXScale}
-              tickValues={[0.1, 0.3, 1, 3, 10, 50]}
+              tickValues={[0.05, 0.2, 1, 3, 10, 50]}
               tickFormat={(v) => {
                 const n = Number(v);
                 return `$${n < 1 ? n.toFixed(2) : n.toFixed(1)}`;
