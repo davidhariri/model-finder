@@ -31,6 +31,8 @@ export default function ModelDetail({
   const [tileSlideDir, setTileSlideDir] = useState<"left" | "right">("right");
   const [provSortCol, setProvSortCol] = useState<"provider" | "input" | "output" | "blended" | "speed" | null>("blended");
   const [provSortAsc, setProvSortAsc] = useState(true);
+  const [neighSortCol, setNeighSortCol] = useState<"model" | "score" | "cost" | "speed" | null>(null);
+  const [neighSortAsc, setNeighSortAsc] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const TILES: Tile[] = ["intelligence", "speed", "cost"];
@@ -86,9 +88,10 @@ export default function ModelDetail({
   const ancestor = model.ancestor ? allModelsData.find((m) => m.id === model.ancestor) : undefined;
   const successor = allModelsData.find((m) => m.ancestor === model.id);
 
-  const speedProviders = [...model.providers].sort((a, b) => b.tokensPerSecond - a.tokensPerSecond);
+  const speedProviders = [...model.providers].sort((a, b) => (b.tokensPerSecond ?? 0) - (a.tokensPerSecond ?? 0));
   const costProviders = [...model.providers].sort((a, b) => blendedCost(a) - blendedCost(b));
-  const maxSpeed = Math.max(...model.providers.map((p) => p.tokensPerSecond));
+  const speedVals = model.providers.map((p) => p.tokensPerSecond).filter((s): s is number => s != null);
+  const maxSpeed = speedVals.length ? Math.max(...speedVals) : 1;
   const maxCostVal = Math.max(...model.providers.map((p) => Math.max(p.costPer1MInput, p.costPer1MOutput)));
 
   const resolved = resolveCompositeScores(model);
@@ -110,8 +113,8 @@ export default function ModelDetail({
       : selectedTile === "speed"
         ? speedProviders.map((p) => ({
             label: getProvider(p.providerId)?.name ?? p.providerId,
-            pct: (p.tokensPerSecond / maxSpeed) * 100,
-            display: `${p.tokensPerSecond} tok/s`,
+            pct: p.tokensPerSecond != null ? (p.tokensPerSecond / maxSpeed) * 100 : null,
+            display: p.tokensPerSecond != null ? `${p.tokensPerSecond} tok/s` : "Not Available",
             providerId: p.providerId,
           }))
         : costProviders.flatMap((p) => {
@@ -145,6 +148,51 @@ export default function ModelDetail({
     }
   }
 
+  const myCost = bestCost(model);
+  const mySpeed = bestSpeed(model);
+  const baseNeighbours = score != null
+    ? allModelsData
+        .filter((m) => {
+          if (m.id === model.id) return false;
+          const s = overallScore(m);
+          return s != null && Math.abs(s - score) <= 10;
+        })
+        .map((m) => ({
+          model: m,
+          score: overallScore(m)!,
+          costDiff: bestCost(m) - myCost,
+          speedDiff: bestSpeed(m) - mySpeed,
+        }))
+        .sort((a, b) => Math.abs(a.score - score!) - Math.abs(b.score - score!))
+        .slice(0, 3)
+    : [];
+
+  const neighbours = neighSortCol
+    ? [...baseNeighbours].sort((a, b) => {
+        let cmp = 0;
+        switch (neighSortCol) {
+          case "model": cmp = a.model.name.localeCompare(b.model.name); break;
+          case "score": cmp = a.score - b.score; break;
+          case "cost": cmp = a.costDiff - b.costDiff; break;
+          case "speed": cmp = a.speedDiff - b.speedDiff; break;
+        }
+        return neighSortAsc ? cmp : -cmp;
+      })
+    : baseNeighbours;
+
+  function toggleNeighSort(col: "model" | "score" | "cost" | "speed") {
+    if (neighSortCol === col) {
+      if (neighSortAsc) {
+        setNeighSortCol(null);
+      } else {
+        setNeighSortAsc(true);
+      }
+    } else {
+      setNeighSortCol(col);
+      setNeighSortAsc(false);
+    }
+  }
+
   const sortedProviders = provSortCol
     ? [...model.providers].sort((a, b) => {
         let cmp = 0;
@@ -153,7 +201,7 @@ export default function ModelDetail({
           case "input": cmp = a.costPer1MInput - b.costPer1MInput; break;
           case "output": cmp = a.costPer1MOutput - b.costPer1MOutput; break;
           case "blended": cmp = blendedCost(a) - blendedCost(b); break;
-          case "speed": cmp = a.tokensPerSecond - b.tokensPerSecond; break;
+          case "speed": cmp = (a.tokensPerSecond ?? -1) - (b.tokensPerSecond ?? -1); break;
         }
         return provSortAsc ? cmp : -cmp;
       })
@@ -435,14 +483,75 @@ export default function ModelDetail({
                       ${fmtCost(blendedCost(p))}
                     </td>
                     <td className="py-3 text-right font-medium">
-                      {p.tokensPerSecond}
-                      <span className="text-[12px] font-normal text-foreground-tertiary ml-0.5">tok/s</span>
+                      {p.tokensPerSecond != null ? (
+                        <>
+                          {p.tokensPerSecond}
+                          <span className="text-[12px] font-normal text-foreground-tertiary ml-0.5">tok/s</span>
+                        </>
+                      ) : (
+                        <span className="text-foreground-tertiary">—</span>
+                      )}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+
+          {/* Neighbours */}
+          {neighbours.length > 0 && (
+            <>
+              <h3 className="text-lg font-semibold tracking-tight text-foreground mt-8 mb-4">Neighbours</h3>
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--card-border)" }}>
+                    <SortTh col="model" current={neighSortCol} asc={neighSortAsc} onSort={toggleNeighSort} align="left">Model</SortTh>
+                    <SortTh col="score" current={neighSortCol} asc={neighSortAsc} onSort={toggleNeighSort} align="right">Intelligence</SortTh>
+                    <SortTh col="cost" current={neighSortCol} asc={neighSortAsc} onSort={toggleNeighSort} align="right">Cost</SortTh>
+                    <SortTh col="speed" current={neighSortCol} asc={neighSortAsc} onSort={toggleNeighSort} align="right">Speed</SortTh>
+                  </tr>
+                </thead>
+                <tbody>
+                  {neighbours.map((n, i) => {
+                    const isLast = i === neighbours.length - 1;
+                    const costSign = n.costDiff > 0 ? "+" : "";
+                    const speedSign = n.speedDiff > 0 ? "+" : "";
+                    return (
+                      <tr
+                        key={n.model.id}
+                        onClick={(e) => { e.stopPropagation(); onNavigate?.(n.model); }}
+                        className="cursor-pointer hover:bg-[var(--surface)] transition-colors"
+                        style={isLast ? undefined : { borderBottom: "1px solid var(--card-border)" }}
+                      >
+                        <td className="py-3 pr-3">
+                          <span className="flex items-center gap-1.5 font-medium text-foreground">
+                            <BrandIcon id={n.model.labId} size={14} className="shrink-0" />
+                            <span className="underline decoration-foreground/20">{n.model.name}</span>
+                            {n.costDiff < 0 && n.speedDiff > 0 && n.score - score! > 0 && (
+                              <span className="inline-flex items-center gap-1 italic text-[12px] font-medium" style={{ color: "#a855f7" }}>
+                                <SparkleIcon size={11} />
+                                Suggested
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className={`py-3 text-right font-medium ${n.score - score! > 0 ? "text-sys-green" : n.score - score! < 0 ? "text-sys-red" : "text-foreground-tertiary"}`}>
+                          {scoreIsEstimated(n.model) ? "~" : ""}{n.score - score! > 0 ? "+" : ""}{n.score - score!}
+                        </td>
+                        <td className={`py-3 text-right font-medium ${n.costDiff < 0 ? "text-sys-green" : n.costDiff > 0 ? "text-sys-red" : "text-foreground-tertiary"}`}>
+                          {costSign}${fmtCost(n.costDiff)}
+                        </td>
+                        <td className={`py-3 text-right font-medium ${n.speedDiff > 0 ? "text-sys-green" : n.speedDiff < 0 ? "text-sys-red" : "text-foreground-tertiary"}`}>
+                          {speedSign}{n.speedDiff}
+                          <span className="text-[12px] font-normal text-foreground-tertiary ml-0.5">tok/s</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
 
           {/* Details */}
           <h3 className="text-lg font-semibold tracking-tight text-foreground mt-8 mb-4">Details</h3>
@@ -596,6 +705,14 @@ function SortTh<T extends string>({ col, current, asc, onSort, align, children, 
     >
       {children}
     </th>
+  );
+}
+
+function SparkleIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M8 0.5 L9.2 6.8 L15.5 8 L9.2 9.2 L8 15.5 L6.8 9.2 L0.5 8 L6.8 6.8 Z" />
+    </svg>
   );
 }
 

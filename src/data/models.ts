@@ -17,7 +17,7 @@ export interface ModelProvider {
   costPer1MInput: number;
   costPer1MOutput: number;
   costPer1MCachedInput?: number;
-  tokensPerSecond: number;
+  tokensPerSecond?: number;
 }
 
 /** Weighted avg $/1M tokens (3:1 input:output) */
@@ -136,7 +136,8 @@ export function bestCost(model: Model): number {
 
 /** Best (highest) speed across providers */
 export function bestSpeed(model: Model): number {
-  return Math.max(...model.providers.map((p) => p.tokensPerSecond));
+  const speeds = model.providers.map((p) => p.tokensPerSecond).filter((s): s is number => s != null);
+  return speeds.length ? Math.max(...speeds) : 0;
 }
 
 /** Cost range [min, max] across providers */
@@ -147,7 +148,8 @@ export function costRange(model: Model): [number, number] {
 
 /** Speed range [min, max] across providers */
 export function speedRange(model: Model): [number, number] {
-  const speeds = model.providers.map((p) => p.tokensPerSecond);
+  const speeds = model.providers.map((p) => p.tokensPerSecond).filter((s): s is number => s != null);
+  if (!speeds.length) return [0, 0];
   return [Math.min(...speeds), Math.max(...speeds)];
 }
 
@@ -205,6 +207,9 @@ export const providers: Provider[] = [
   { id: "xai", name: "xAI", url: "https://docs.x.ai/developers/models" },
   { id: "groq", name: "Groq", url: "https://groq.com/models" },
   { id: "cerebras", name: "Cerebras", url: "https://www.cerebras.ai/inference" },
+  { id: "alibaba", name: "Alibaba", url: "https://www.alibabacloud.com/en/product/modelstudio" },
+  { id: "zhipu", name: "Z.ai", url: "https://docs.z.ai/api-reference" },
+  { id: "baseten", name: "Baseten", url: "https://www.baseten.co/pricing/" },
 ];
 
 // --- Models ---
@@ -463,7 +468,64 @@ export const models: Model[] = [
     expectingMoreBenchmarks: true,
     scores: { reasoning: 93, reasoningHle: 40, multimodal: 81 },
     providers: [
-      { providerId: "openai", costPer1MInput: 2.50, costPer1MOutput: 15.00, costPer1MCachedInput: 0.25, tokensPerSecond: 87 },
+      { providerId: "openai", costPer1MInput: 2.50, costPer1MOutput: 15.00, costPer1MCachedInput: 0.25, tokensPerSecond: 93 },
+    ],
+  },
+  {
+    id: "gpt-5.4-mini",
+    name: "GPT-5.4 mini",
+    labId: "openai",
+    contextWindow: 400_000,
+    maxOutputTokens: 128_000,
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "none / low / medium / high / xhigh" },
+    openWeights: false,
+    ancestor: "gpt-5-mini",
+    releaseDate: "2026-03-17",
+    releaseUrl: "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 88, reasoningHle: 27 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 0.75, costPer1MOutput: 4.50, costPer1MCachedInput: 0.075, tokensPerSecond: 171 },
+      { providerId: "azure", costPer1MInput: 0.75, costPer1MOutput: 4.50, costPer1MCachedInput: 0.075 },
+    ],
+  },
+  {
+    id: "gpt-5.4-nano",
+    name: "GPT-5.4 nano",
+    labId: "openai",
+    contextWindow: 400_000,
+    maxOutputTokens: 128_000,
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "none / low / medium / high / xhigh" },
+    openWeights: false,
+    ancestor: "gpt-5-nano",
+    releaseDate: "2026-03-17",
+    releaseUrl: "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 82, reasoningHle: 27 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 0.20, costPer1MOutput: 1.25, costPer1MCachedInput: 0.02, tokensPerSecond: 162 },
+      { providerId: "azure", costPer1MInput: 0.20, costPer1MOutput: 1.25, costPer1MCachedInput: 0.02 },
+    ],
+  },
+  {
+    id: "gpt-5.5",
+    name: "GPT-5.5",
+    labId: "openai",
+    contextWindow: 1_000_000,
+    maxOutputTokens: 128_000,
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "none / low / medium / high / xhigh" },
+    openWeights: false,
+    ancestor: "gpt-5.4",
+    releaseDate: "2026-04-23",
+    releaseUrl: "https://openai.com/index/introducing-gpt-5-5/",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 94, reasoningHle: 44 },
+    providers: [
+      { providerId: "openai", costPer1MInput: 5.00, costPer1MOutput: 30.00, costPer1MCachedInput: 0.50, tokensPerSecond: 78 },
+      { providerId: "azure", costPer1MInput: 5.00, costPer1MOutput: 30.00, costPer1MCachedInput: 0.50 },
     ],
   },
   {
@@ -484,6 +546,28 @@ export const models: Model[] = [
       { providerId: "fireworks", costPer1MInput: 0.15, costPer1MOutput: 0.60, tokensPerSecond: 765 },
       { providerId: "cerebras", costPer1MInput: 0.35, costPer1MOutput: 0.75, tokensPerSecond: 2951 },
       { providerId: "groq", costPer1MInput: 0.15, costPer1MOutput: 0.60, tokensPerSecond: 500 },
+      { providerId: "baseten", costPer1MInput: 0.10, costPer1MOutput: 0.50 },
+    ],
+  },
+  {
+    id: "gpt-oss-20b",
+    name: "GPT-OSS 20B",
+    labId: "openai",
+    contextWindow: 131_072,
+    maxOutputTokens: 16_384,
+    knowledgeCutoff: "2024-06",
+    parameters: { total: 21, active: 3.6 },
+    supportsImages: false,
+    thinking: { type: "controllable", budgetRange: "low / medium / high" },
+    openWeights: true,
+    releaseDate: "2025-08-05",
+    releaseUrl: "https://openai.com/index/introducing-gpt-oss/",
+    scores: { codingLive: 78, reasoning: 69, reasoningHle: 10, math: 89, mathBenchmark: "AIME 2025", general: 75 },
+    providers: [
+      { providerId: "groq", costPer1MInput: 0.075, costPer1MOutput: 0.30, tokensPerSecond: 962 },
+      { providerId: "together", costPer1MInput: 0.05, costPer1MOutput: 0.20 },
+      { providerId: "fireworks", costPer1MInput: 0.07, costPer1MOutput: 0.30 },
+      { providerId: "bedrock", costPer1MInput: 0.07, costPer1MOutput: 0.31, tokensPerSecond: 542 },
     ],
   },
   // --- Anthropic ---
@@ -501,7 +585,7 @@ export const models: Model[] = [
     releaseUrl: "https://www.anthropic.com/news/claude-sonnet-4-5",
     scores: { coding: 77, codingLive: 71, reasoning: 83, reasoningHle: 17, math: 88, mathBenchmark: "AIME 2025", general: 88 },
     providers: [
-      { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 85 },
+      { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 49 },
       { providerId: "bedrock", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 103 },
       { providerId: "vertex", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 49 },
     ],
@@ -557,11 +641,11 @@ export const models: Model[] = [
     ancestor: "claude-opus-4-5",
     releaseDate: "2026-02-05",
     releaseUrl: "https://www.anthropic.com/news/claude-opus-4-6",
-    scores: { coding: 81, codingLive: 76, reasoning: 91, reasoningHle: 40, math: 100, mathBenchmark: "AIME 2025", multimodal: 74 },
+    scores: { coding: 81, codingLive: 76, reasoning: 91, reasoningHle: 40, math: 100, mathBenchmark: "AIME 2025", multimodal: 74, elo: 1501 },
     providers: [
-      { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 73 },
-      { providerId: "bedrock", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 67 },
-      { providerId: "vertex", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 56 },
+      { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 44 },
+      { providerId: "bedrock", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 52 },
+      { providerId: "vertex", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 44 },
     ],
   },
   {
@@ -577,11 +661,32 @@ export const models: Model[] = [
     ancestor: "claude-sonnet-4-5",
     releaseDate: "2026-02-17",
     releaseUrl: "https://www.anthropic.com/news/claude-sonnet-4-6",
-    scores: { coding: 80, codingLive: 72, reasoning: 88, reasoningHle: 30, general: 89, multimodal: 75 },
+    scores: { coding: 80, codingLive: 72, reasoning: 88, reasoningHle: 30, general: 89, multimodal: 75, elo: 1503 },
     providers: [
-      { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 57 },
-      { providerId: "bedrock", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 64 },
-      { providerId: "vertex", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 51 },
+      { providerId: "anthropic", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 46 },
+      { providerId: "bedrock", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 46 },
+      { providerId: "vertex", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.30, tokensPerSecond: 45 },
+    ],
+  },
+  {
+    id: "claude-opus-4-7",
+    name: "Claude Opus 4.7",
+    labId: "anthropic",
+    contextWindow: 200_000,
+    maxOutputTokens: 128_000,
+    knowledgeCutoff: "2026-01",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    ancestor: "claude-opus-4-6",
+    releaseDate: "2026-04-16",
+    releaseUrl: "https://www.anthropic.com/news/claude-opus-4-7",
+    expectingMoreBenchmarks: true,
+    scores: { coding: 88, reasoning: 94, reasoningHle: 47, elo: 1504 },
+    providers: [
+      { providerId: "anthropic", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 46 },
+      { providerId: "bedrock", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 86 },
+      { providerId: "vertex", costPer1MInput: 5.00, costPer1MOutput: 25.00, costPer1MCachedInput: 0.50, tokensPerSecond: 59 },
     ],
   },
   {
@@ -598,7 +703,7 @@ export const models: Model[] = [
     releaseUrl: "https://blog.google/technology/google-deepmind/gemini-model-thinking-updates-march-2025/",
     scores: { coding: 64, codingLive: 80, reasoning: 84, reasoningHle: 21, math: 88, mathBenchmark: "AIME 2025", general: 86, elo: 1465 },
     providers: [
-      { providerId: "google", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 159 },
+      { providerId: "google", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 128 },
       { providerId: "vertex", costPer1MInput: 1.25, costPer1MOutput: 10.00, costPer1MCachedInput: 0.125, tokensPerSecond: 139 },
     ],
   },
@@ -652,8 +757,8 @@ export const models: Model[] = [
     releaseUrl: "https://blog.google/products-and-platforms/products/gemini/gemini-3-flash/",
     scores: { coding: 78, codingLive: 91, reasoning: 90, reasoningHle: 35, math: 97, mathBenchmark: "AIME 2025", general: 89 },
     providers: [
-      { providerId: "google", costPer1MInput: 0.50, costPer1MOutput: 3.00, costPer1MCachedInput: 0.05, tokensPerSecond: 215 },
-      { providerId: "vertex", costPer1MInput: 0.50, costPer1MOutput: 3.00, costPer1MCachedInput: 0.05, tokensPerSecond: 209 },
+      { providerId: "google", costPer1MInput: 0.50, costPer1MOutput: 3.00, costPer1MCachedInput: 0.05, tokensPerSecond: 184 },
+      { providerId: "vertex", costPer1MInput: 0.50, costPer1MOutput: 3.00, costPer1MCachedInput: 0.05 },
     ],
   },
   {
@@ -669,11 +774,29 @@ export const models: Model[] = [
     ancestor: "gemini-3-pro",
     releaseDate: "2026-02-19",
     releaseUrl: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-1-pro/",
-    expectingMoreBenchmarks: true,
-    scores: { coding: 81, reasoning: 94, reasoningHle: 45 },
+    scores: { coding: 81, reasoning: 94, reasoningHle: 45, general: 93, multimodal: 81 },
     providers: [
       { providerId: "google", costPer1MInput: 2.00, costPer1MOutput: 12.00, costPer1MCachedInput: 0.20, tokensPerSecond: 104 },
       { providerId: "vertex", costPer1MInput: 2.00, costPer1MOutput: 12.00, costPer1MCachedInput: 0.20, tokensPerSecond: 130 },
+    ],
+  },
+  {
+    id: "gemini-3.1-flash-lite",
+    name: "Gemini 3.1 Flash-Lite",
+    labId: "google",
+    contextWindow: 1_048_576,
+    maxOutputTokens: 65_536,
+    knowledgeCutoff: "2025-01",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    ancestor: "gemini-3-flash",
+    releaseDate: "2026-03-03",
+    releaseUrl: "https://deepmind.google/models/model-cards/gemini-3-1-flash-lite/",
+    scores: { codingLive: 72, reasoning: 87, reasoningHle: 16, general: 89, multimodal: 77 },
+    providers: [
+      { providerId: "google", costPer1MInput: 0.25, costPer1MOutput: 1.50, costPer1MCachedInput: 0.025, tokensPerSecond: 307 },
+      { providerId: "vertex", costPer1MInput: 0.25, costPer1MOutput: 1.50, costPer1MCachedInput: 0.025 },
     ],
   },
   {
@@ -690,7 +813,7 @@ export const models: Model[] = [
     releaseUrl: "https://x.ai/news/grok-4",
     scores: { codingLive: 82, reasoning: 88, reasoningHle: 24, math: 93, mathBenchmark: "AIME 2025", general: 87 },
     providers: [
-      { providerId: "xai", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.75, tokensPerSecond: 36 },
+      { providerId: "xai", costPer1MInput: 3.00, costPer1MOutput: 15.00, costPer1MCachedInput: 0.75, tokensPerSecond: 60 },
     ],
   },
   {
@@ -708,7 +831,60 @@ export const models: Model[] = [
     releaseUrl: "https://x.ai/news/grok-4-1-fast",
     scores: { codingLive: 82, reasoning: 85, reasoningHle: 18, math: 89, mathBenchmark: "AIME 2025", general: 85 },
     providers: [
-      { providerId: "xai", costPer1MInput: 0.20, costPer1MOutput: 0.50, costPer1MCachedInput: 0.05, tokensPerSecond: 150 },
+      { providerId: "xai", costPer1MInput: 0.20, costPer1MOutput: 0.50, costPer1MCachedInput: 0.05, tokensPerSecond: 107 },
+    ],
+  },
+  {
+    id: "grok-code-fast-1",
+    name: "Grok Code Fast 1",
+    labId: "xai",
+    contextWindow: 256_000,
+    maxOutputTokens: 131_072,
+    supportsImages: false,
+    thinking: { type: "always" },
+    openWeights: false,
+    ancestor: "grok-4",
+    releaseDate: "2025-08-28",
+    releaseUrl: "https://x.ai/news/grok-code-fast-1",
+    scores: { codingLive: 66, reasoning: 73, reasoningHle: 8, math: 43, mathBenchmark: "AIME 2025", general: 79 },
+    providers: [
+      { providerId: "xai", costPer1MInput: 0.20, costPer1MOutput: 1.50, costPer1MCachedInput: 0.02, tokensPerSecond: 144 },
+    ],
+  },
+  {
+    id: "grok-4-fast",
+    name: "Grok 4 Fast",
+    labId: "xai",
+    contextWindow: 2_000_000,
+    maxOutputTokens: 131_072,
+    knowledgeCutoff: "2024-11",
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    ancestor: "grok-4",
+    releaseDate: "2025-09-19",
+    releaseUrl: "https://x.ai/news/grok-4-fast",
+    scores: { codingLive: 83, reasoning: 85, reasoningHle: 17, math: 90, mathBenchmark: "AIME 2025", general: 85 },
+    providers: [
+      { providerId: "xai", costPer1MInput: 0.20, costPer1MOutput: 0.50, costPer1MCachedInput: 0.05, tokensPerSecond: 145 },
+    ],
+  },
+  {
+    id: "grok-4-20",
+    name: "Grok 4.20",
+    labId: "xai",
+    contextWindow: 2_000_000,
+    maxOutputTokens: 131_072,
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    ancestor: "grok-4.1-fast",
+    releaseDate: "2026-03-10",
+    releaseUrl: "https://docs.x.ai/developers/models/grok-4.20-multi-agent-beta-0309",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 89, reasoningHle: 30 },
+    providers: [
+      { providerId: "xai", costPer1MInput: 2.00, costPer1MOutput: 6.00, tokensPerSecond: 98 },
     ],
   },
   // --- Mistral ---
@@ -744,6 +920,24 @@ export const models: Model[] = [
     providers: [
       { providerId: "mistral", costPer1MInput: 0.50, costPer1MOutput: 1.50, tokensPerSecond: 56 },
       { providerId: "bedrock", costPer1MInput: 0.50, costPer1MOutput: 1.50, tokensPerSecond: 147 },
+    ],
+  },
+  {
+    id: "mistral-small-4",
+    name: "Mistral Small 4",
+    labId: "mistral",
+    contextWindow: 256_000,
+    maxOutputTokens: 32_768,
+    parameters: { total: 119, active: 6 },
+    supportsImages: true,
+    thinking: { type: "controllable", budgetRange: "none / low / medium / high" },
+    openWeights: true,
+    releaseDate: "2026-03-16",
+    releaseUrl: "https://mistral.ai/news/mistral-small-4",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 77, reasoningHle: 10, mathBenchmark: "AIME 2025" },
+    providers: [
+      { providerId: "mistral", costPer1MInput: 0.15, costPer1MOutput: 0.60, tokensPerSecond: 157 },
     ],
   },
   // --- DeepSeek ---
@@ -803,6 +997,7 @@ export const models: Model[] = [
     providers: [
       { providerId: "fireworks", costPer1MInput: 0.56, costPer1MOutput: 1.68, costPer1MCachedInput: 0.28, tokensPerSecond: 347 },
       { providerId: "together", costPer1MInput: 0.60, costPer1MOutput: 1.70, tokensPerSecond: 278 },
+      { providerId: "baseten", costPer1MInput: 0.50, costPer1MOutput: 1.50, costPer1MCachedInput: 0.25 },
     ],
   },
   {
@@ -821,8 +1016,48 @@ export const models: Model[] = [
     releaseUrl: "https://api-docs.deepseek.com/news/news251201",
     scores: { coding: 73, codingLive: 86, reasoning: 84, reasoningHle: 22, math: 94, mathBenchmark: "AIME 2026", general: 86 },
     providers: [
-      { providerId: "deepseek", costPer1MInput: 0.28, costPer1MOutput: 0.42, costPer1MCachedInput: 0.028, tokensPerSecond: 50 },
+      { providerId: "deepseek", costPer1MInput: 0.28, costPer1MOutput: 0.42, costPer1MCachedInput: 0.028, tokensPerSecond: 80 },
       { providerId: "fireworks", costPer1MInput: 0.56, costPer1MOutput: 1.68, costPer1MCachedInput: 0.28, tokensPerSecond: 219 },
+    ],
+  },
+  {
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    labId: "deepseek",
+    contextWindow: 1_000_000,
+    maxOutputTokens: 131_072,
+    parameters: { total: 1600, active: 49 },
+    supportsImages: false,
+    thinking: { type: "controllable", budgetRange: "non-think / think-high / think-max" },
+    openWeights: true,
+    ancestor: "deepseek-chat",
+    releaseDate: "2026-04-24",
+    releaseUrl: "https://api-docs.deepseek.com/news/news260424",
+    scores: { coding: 81, codingLive: 94, reasoning: 89, reasoningHle: 36, mathBenchmark: "AIME 2026", general: 88 },
+    providers: [
+      { providerId: "deepseek", costPer1MInput: 1.74, costPer1MOutput: 3.48, tokensPerSecond: 36 },
+      { providerId: "together", costPer1MInput: 2.10, costPer1MOutput: 4.40, tokensPerSecond: 56 },
+      { providerId: "fireworks", costPer1MInput: 1.74, costPer1MOutput: 3.48, costPer1MCachedInput: 0.15 },
+      { providerId: "baseten", costPer1MInput: 1.74, costPer1MOutput: 3.48, costPer1MCachedInput: 0.145 },
+    ],
+  },
+  {
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    labId: "deepseek",
+    contextWindow: 1_000_000,
+    maxOutputTokens: 131_072,
+    parameters: { total: 284, active: 13 },
+    supportsImages: false,
+    thinking: { type: "controllable" },
+    openWeights: true,
+    ancestor: "deepseek-chat",
+    releaseDate: "2026-04-24",
+    releaseUrl: "https://api-docs.deepseek.com/news/news260424",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 89, reasoningHle: 32 },
+    providers: [
+      { providerId: "deepseek", costPer1MInput: 0.14, costPer1MOutput: 0.28, tokensPerSecond: 79 },
     ],
   },
   // --- Meta ---
@@ -848,6 +1083,23 @@ export const models: Model[] = [
       { providerId: "vertex", costPer1MInput: 0.20, costPer1MOutput: 0.60, tokensPerSecond: 152 },
     ],
   },
+  {
+    id: "llama-4-scout",
+    name: "Llama 4 Scout",
+    labId: "meta",
+    contextWindow: 10_000_000,
+    maxOutputTokens: 16_384,
+    knowledgeCutoff: "2024-08",
+    parameters: { total: 109, active: 17 },
+    supportsImages: true,
+    openWeights: true,
+    releaseDate: "2025-04-05",
+    releaseUrl: "https://ai.meta.com/blog/llama-4-multimodal-intelligence/",
+    scores: { codingLive: 30, reasoning: 59, reasoningHle: 4, math: 14, mathBenchmark: "AIME 2025", general: 75 },
+    providers: [
+      { providerId: "groq", costPer1MInput: 0.11, costPer1MOutput: 0.34, tokensPerSecond: 448 },
+    ],
+  },
   // --- Alibaba ---
   {
     id: "qwen3.5-397b",
@@ -866,7 +1118,76 @@ export const models: Model[] = [
       { providerId: "together", costPer1MInput: 0.60, costPer1MOutput: 3.60, tokensPerSecond: 74 },
     ],
   },
+  {
+    id: "qwen3-6-27b",
+    name: "Qwen3.6-27B",
+    labId: "alibaba",
+    contextWindow: 262_144,
+    maxOutputTokens: 81_920,
+    parameters: { total: 27 },
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: true,
+    releaseDate: "2026-04-22",
+    releaseUrl: "https://qwen.ai/blog?id=qwen3.6-27b",
+    scores: { coding: 77, codingLive: 84, reasoning: 84, reasoningHle: 22, math: 94, mathBenchmark: "AIME 2026", general: 86, multimodal: 76 },
+    providers: [
+      { providerId: "alibaba", costPer1MInput: 0.60, costPer1MOutput: 3.60, tokensPerSecond: 65 },
+    ],
+  },
+  {
+    id: "qwen3-6-35b-a3b",
+    name: "Qwen3.6-35B-A3B",
+    labId: "alibaba",
+    contextWindow: 262_144,
+    maxOutputTokens: 81_920,
+    parameters: { total: 35, active: 3 },
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: true,
+    releaseDate: "2026-04-16",
+    releaseUrl: "https://huggingface.co/Qwen/Qwen3.6-35B-A3B",
+    scores: { coding: 73, codingLive: 80, reasoning: 84, reasoningHle: 20, math: 93, mathBenchmark: "AIME 2026", general: 85, multimodal: 75 },
+    providers: [
+      { providerId: "alibaba", costPer1MInput: 0.25, costPer1MOutput: 1.49, tokensPerSecond: 200 },
+    ],
+  },
+  {
+    id: "qwen3-6-plus",
+    name: "Qwen3.6 Plus",
+    labId: "alibaba",
+    contextWindow: 1_000_000,
+    maxOutputTokens: 32_768,
+    parameters: { total: 396 },
+    supportsImages: true,
+    thinking: { type: "controllable" },
+    openWeights: false,
+    ancestor: "qwen3.5-397b",
+    releaseDate: "2026-04-04",
+    releaseUrl: "https://fireworks.ai/models/fireworks/qwen3p6-plus",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 89, reasoningHle: 27, mathBenchmark: "AIME 2026" },
+    providers: [
+      { providerId: "fireworks", costPer1MInput: 0.50, costPer1MOutput: 3.00, costPer1MCachedInput: 0.10 },
+    ],
+  },
   // --- Moonshot AI ---
+  {
+    id: "kimi-k2",
+    name: "Kimi K2",
+    labId: "moonshot",
+    contextWindow: 131_072,
+    maxOutputTokens: 16_384,
+    parameters: { total: 1000, active: 32 },
+    supportsImages: false,
+    openWeights: true,
+    releaseDate: "2025-07-11",
+    releaseUrl: "https://moonshotai.github.io/Kimi-K2/",
+    scores: { codingLive: 56, reasoning: 77, reasoningHle: 7, math: 57, mathBenchmark: "AIME 2025", general: 82 },
+    providers: [
+      { providerId: "together", costPer1MInput: 0.60, costPer1MOutput: 2.50, tokensPerSecond: 36 },
+    ],
+  },
   {
     id: "kimi-k2.5",
     name: "Kimi K2.5",
@@ -877,12 +1198,14 @@ export const models: Model[] = [
     supportsImages: true,
     thinking: { type: "controllable" },
     openWeights: true,
+    ancestor: "kimi-k2",
     releaseDate: "2026-01-27",
     releaseUrl: "https://www.kimi.com/blog/kimi-k2-5.html",
     scores: { coding: 77, codingLive: 85, reasoning: 88, reasoningHle: 29, math: 96, mathBenchmark: "AIME 2025", general: 87, elo: 1449 },
     providers: [
       { providerId: "together", costPer1MInput: 0.50, costPer1MOutput: 2.80, tokensPerSecond: 45 },
       { providerId: "fireworks", costPer1MInput: 0.60, costPer1MOutput: 3.00, costPer1MCachedInput: 0.10, tokensPerSecond: 345 },
+      { providerId: "baseten", costPer1MInput: 0.60, costPer1MOutput: 3.00, costPer1MCachedInput: 0.12 },
     ],
   },
   // --- Zhipu AI ---
@@ -901,6 +1224,7 @@ export const models: Model[] = [
     scores: { coding: 74, codingLive: 89, reasoning: 86, reasoningHle: 25, math: 95, mathBenchmark: "AIME 2025", general: 86, elo: 1441 },
     providers: [
       { providerId: "fireworks", costPer1MInput: 0.60, costPer1MOutput: 2.20, tokensPerSecond: 136 },
+      { providerId: "baseten", costPer1MInput: 0.60, costPer1MOutput: 2.20, costPer1MCachedInput: 0.12 },
     ],
   },
   {
@@ -916,10 +1240,32 @@ export const models: Model[] = [
     ancestor: "glm-4-7",
     releaseDate: "2026-02-11",
     releaseUrl: "https://z.ai/blog/glm-5",
-    scores: { coding: 78, codingLive: 52, reasoning: 82, reasoningHle: 27, math: 93, mathBenchmark: "AIME 2026" },
+    scores: { coding: 78, codingLive: 52, reasoning: 82, reasoningHle: 27, math: 93, mathBenchmark: "AIME 2026", elo: 1451 },
     providers: [
       { providerId: "together", costPer1MInput: 1.00, costPer1MOutput: 3.20, tokensPerSecond: 55 },
       { providerId: "fireworks", costPer1MInput: 1.00, costPer1MOutput: 3.20, costPer1MCachedInput: 0.20, tokensPerSecond: 266 },
+      { providerId: "baseten", costPer1MInput: 0.95, costPer1MOutput: 3.15, costPer1MCachedInput: 0.20 },
+    ],
+  },
+  {
+    id: "glm-5-1",
+    name: "GLM-5.1",
+    labId: "zhipu",
+    contextWindow: 200_000,
+    maxOutputTokens: 128_000,
+    parameters: { total: 754, active: 40 },
+    supportsImages: false,
+    thinking: { type: "always" },
+    openWeights: true,
+    ancestor: "glm-5",
+    releaseDate: "2026-04-07",
+    releaseUrl: "https://z.ai/blog/glm-5-1",
+    expectingMoreBenchmarks: true,
+    scores: { reasoning: 87, reasoningHle: 28, mathBenchmark: "AIME 2026" },
+    providers: [
+      { providerId: "zhipu", costPer1MInput: 1.40, costPer1MOutput: 4.40, tokensPerSecond: 51 },
+      { providerId: "together", costPer1MInput: 1.40, costPer1MOutput: 4.40, tokensPerSecond: 77 },
+      { providerId: "fireworks", costPer1MInput: 1.40, costPer1MOutput: 4.40, costPer1MCachedInput: 0.26, tokensPerSecond: 163 },
     ],
   },
   // --- MiniMax ---
@@ -939,6 +1285,7 @@ export const models: Model[] = [
     providers: [
       { providerId: "together", costPer1MInput: 0.30, costPer1MOutput: 1.20, tokensPerSecond: 58 },
       { providerId: "fireworks", costPer1MInput: 0.30, costPer1MOutput: 1.20, costPer1MCachedInput: 0.03, tokensPerSecond: 273 },
+      { providerId: "baseten", costPer1MInput: 0.30, costPer1MOutput: 1.20, costPer1MCachedInput: 0.06 },
     ],
   },
   // --- Cohere ---

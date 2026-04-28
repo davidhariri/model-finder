@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Model, models, providers, overallScore, scoreIsEstimated, bestSpeed, bestCost, getLab, getProvider } from "@/data/models";
+import { Model, models, providers, labs, overallScore, scoreIsEstimated, bestSpeed, bestCost, getLab, getProvider } from "@/data/models";
 import CostPerformanceScatter from "@/components/CostPerformanceScatter";
 import RankingTabs from "@/components/RankingTabs";
 import ModelDetail from "@/components/ModelDetail";
@@ -17,6 +17,7 @@ export default function Home() {
   const [requireVision, setRequireVision] = useState(false);
   const [requireOpenWeights, setRequireOpenWeights] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [closingModal, setClosingModal] = useState(false);
@@ -81,7 +82,7 @@ export default function Home() {
     return () => { document.body.style.overflow = ""; };
   }, [selectedModel]);
 
-  const filtersChanged = minScore !== 0 || minSpeedVal !== 0 || maxCostVal !== 50 || requireVision || requireOpenWeights || selectedProviderId !== null;
+  const filtersChanged = minScore !== 0 || minSpeedVal !== 0 || maxCostVal !== 50 || requireVision || requireOpenWeights || selectedProviderId !== null || selectedLabId !== null;
 
   const filtered = models.filter(
     (m) =>
@@ -90,7 +91,8 @@ export default function Home() {
       (maxCostVal >= 50 || bestCost(m) <= maxCostVal) &&
       (!requireVision || m.supportsImages) &&
       (!requireOpenWeights || m.openWeights) &&
-      (!selectedProviderId || m.providers.some((p) => p.providerId === selectedProviderId))
+      (!selectedProviderId || m.providers.some((p) => p.providerId === selectedProviderId)) &&
+      (!selectedLabId || m.labId === selectedLabId)
   );
 
   const toggleSort = (col: string) => {
@@ -230,7 +232,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebApplication",
-          "name": "Model Browser",
+          "name": "David's Model Chooser",
           "url": "https://models.dhariri.com",
           "description": "Compare LLM models by intelligence benchmarks, API pricing, and speed. Filter and sort GPT, Claude, Gemini, Llama, and more.",
           "applicationCategory": "DeveloperApplication",
@@ -241,9 +243,6 @@ export default function Home() {
       />
       {/* Hero + Inline Filters */}
       <header className="mb-10 md:mb-14 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl mb-8 md:mb-10">
-          Model Browser
-        </h1>
         <p className="sr-only">
           Compare large language models side by side. Filter GPT-4o, Claude, Gemini, Llama, Mistral, DeepSeek, and Qwen models by intelligence benchmarks like GPQA Diamond, HLE, and LiveCodeBench. Sort by API pricing, tokens per second, and overall score. Find the best LLM for your use case.
         </p>
@@ -261,6 +260,7 @@ export default function Home() {
             <FilterPill label="Only Vision" active={requireVision} color="magenta" onClick={() => setRequireVision((v) => !v)} icon={<EyeIcon />} />
             <FilterPill label="Only Open Weights" active={requireOpenWeights} color="green" onClick={() => setRequireOpenWeights((v) => !v)} icon={<UnlockedIcon />} />
             <ProviderDropdown selectedProviderId={selectedProviderId} onChange={setSelectedProviderId} />
+            <LabDropdown selectedLabId={selectedLabId} onChange={setSelectedLabId} />
           </div>
           {/* Empty state + Reset */}
           <div className="flex flex-col items-center gap-2">
@@ -284,6 +284,7 @@ export default function Home() {
                 setRequireVision(false);
                 setRequireOpenWeights(false);
                 setSelectedProviderId(null);
+                setSelectedLabId(null);
               }}
               className="text-sm font-medium cursor-pointer transition-all duration-300 hover:opacity-100!"
               style={{
@@ -403,7 +404,7 @@ export default function Home() {
         >
           About
         </button>
-        <p className="text-sm font-medium text-foreground-tertiary">Last updated February 22, 2026</p>
+        <p className="text-sm font-medium text-foreground-tertiary">Last updated April 28, 2026</p>
         <p className="text-sm font-medium text-foreground-tertiary">
           <a href="https://x.com/davidhariri" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline decoration-foreground/20 hover:text-foreground-secondary transition-colors"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>@davidhariri</a>
         </p>
@@ -582,6 +583,89 @@ function ProviderDropdown({ selectedProviderId, onChange }: { selectedProviderId
           >
             <BrandIcon id={provider.id} size={14} className="shrink-0" />
             {provider.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LabDropdown({ selectedLabId, onChange }: { selectedLabId: string | null; onChange: (id: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = selectedLabId !== null;
+  const selectedLab = selectedLabId ? getLab(selectedLabId) : null;
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    }
+    document.addEventListener("pointerdown", handleClick);
+    return () => document.removeEventListener("pointerdown", handleClick);
+  }, [open]);
+
+  const labIds = new Set(models.map((m) => m.labId));
+  const availableLabs = labs.filter((l) => labIds.has(l.id));
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`text-sm font-medium cursor-pointer h-[44px] px-5 rounded-full transition-colors duration-200 flex items-center gap-1.5 ${
+          active
+            ? "bg-foreground text-background"
+            : "bg-[color-mix(in_srgb,var(--foreground)_8%,transparent)] text-foreground-secondary hover:text-foreground"
+        }`}
+      >
+        {selectedLabId && <BrandIcon id={selectedLabId} size={14} />}
+        {selectedLab?.name ?? "All Labs"}
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="ml-0.5"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}
+        >
+          <path d="M2.5 4L5 6.5L7.5 4" />
+        </svg>
+      </button>
+      <div
+        className="absolute top-full left-0 mt-2 rounded-2xl py-1.5 z-50 min-w-[220px]"
+        style={{
+          background: "var(--card-bg)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+          border: "1px solid var(--card-border)",
+          opacity: open ? 1 : 0,
+          transform: open ? "scale(1)" : "scale(0.95)",
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 0.15s ease, transform 0.15s ease",
+        }}
+      >
+        <button
+          onClick={() => { onChange(null); setOpen(false); }}
+          className={`w-full text-left text-sm px-4 py-2 cursor-pointer transition-colors flex items-center gap-2 ${
+            !selectedLabId ? "text-foreground font-medium" : "text-foreground-secondary hover:text-foreground"
+          }`}
+        >
+          All Labs
+        </button>
+        {availableLabs.map((lab) => (
+          <button
+            key={lab.id}
+            onClick={() => { onChange(lab.id); setOpen(false); }}
+            className={`w-full text-left text-sm px-4 py-2 cursor-pointer transition-colors flex items-center gap-2 ${
+              selectedLabId === lab.id ? "text-foreground font-medium" : "text-foreground-secondary hover:text-foreground"
+            }`}
+          >
+            <BrandIcon id={lab.id} size={14} className="shrink-0" />
+            {lab.name}
           </button>
         ))}
       </div>
